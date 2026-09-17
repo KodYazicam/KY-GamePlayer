@@ -42,6 +42,12 @@ The app refuses the main UI unless `/users/@me/guilds` (or guild member) shows g
 - Point this client at a Discord user account you do not own.
 - Expect this to bypass Discord ToS. User-token REST (`/science`, quest heartbeat, hypesquad) is unofficial. Discord can rate-limit, lock, or terminate accounts. You run it at your own risk.
 
+## Windows EXE / antivirus
+
+Release zips are **unsigned PyInstaller** onedirs. Heuristic engines commonly flag high-entropy overlays and process-list APIs (`CreateToolhelp32Snapshot` is used on purpose — game detect). That is not a signed “0 detections” claim.
+
+For v1.0.0, hashes and VirusTotal permalinks live in [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). Prefer `python run.py` from this source tree if you do not want a packed binary.
+
 ## Reporting
 
 Open a private advisory on [KodYazicam/KY-GamePlayer](https://github.com/KodYazicam/KY-GamePlayer/security/advisories/new).

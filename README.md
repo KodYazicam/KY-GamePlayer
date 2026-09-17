@@ -126,7 +126,7 @@ python3 run.py
 
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → `KodYazar-Client-v*-windows-x64.zip` → unzip → `KodYazar\KodYazar.exe` (keep `_internal`).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → `KodYazar-Client-v*-windows-x64.zip` → unzip → `KodYazar\KodYazar.exe` (keep `_internal`). Hashes + VirusTotal permalinks: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md).
 - **From source:** `kurulum.bat` once, then `windows.bat`.
 - **Local EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 

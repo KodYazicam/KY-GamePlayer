@@ -37,8 +37,27 @@ jobs:
           Compress-Archive -Path "dist\KodYazar" -DestinationPath $name -Force
           $hash = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower()
           Set-Content -Encoding ascii -NoNewline -Path "$name.sha256" -Value "$hash  $name`n"
+          $exe = Get-Item dist\KodYazar\KodYazar.exe
+          $exeHash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          $zipItem = Get-Item $name
+          $lines = @(
+            "KodYazar Client ${{ github.ref_name }} — Windows hashes",
+            "",
+            "KodYazar.exe",
+            "  size    $($exe.Length)",
+            "  sha256  $exeHash",
+            "  virustotal  https://www.virustotal.com/gui/file/$exeHash",
+            "",
+            $name,
+            "  size    $($zipItem.Length)",
+            "  sha256  $hash",
+            "  virustotal  https://www.virustotal.com/gui/file/$hash",
+            ""
+          )
+          Set-Content -Encoding ascii -Path HASHES.txt -Value $lines
           Get-Item dist\KodYazar\KodYazar.exe, $name | Format-Table Name, Length
           Get-Content "$name.sha256"
+          Get-Content HASHES.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -47,6 +66,7 @@ jobs:
           path: |
             KodYazar-Client-${{ github.ref_name }}-windows-x64.zip
             KodYazar-Client-${{ github.ref_name }}-windows-x64.zip.sha256
+            HASHES.txt
           if-no-files-found: error
 
       - name: GitHub Release
@@ -57,5 +77,6 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip" \
             "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip.sha256" \
+            HASHES.txt \
             --title "KodYazar Client ${{ github.ref_name }}" \
             --notes-file docs/release-notes.md
