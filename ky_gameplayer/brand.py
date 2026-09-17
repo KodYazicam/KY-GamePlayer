@@ -1,0 +1,6 @@
+INVITE_CODE = "rS42FCPfKZ"
+INVITE_URL = "https://discord.gg/rS42FCPfKZ"
+REQUIRED_GUILD_ID = "1549516395010854912"
+GUILD_NAME = "KodYazar Client"
+APP_NAME = "KodYazar"
+APP_TITLE = "KodYazar Client"

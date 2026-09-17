@@ -1,0 +1,19 @@
+[project]
+name = "kodyazar-client"
+version = "1.0.0"
+description = "KodYazar Client — Discord Rich Presence, quest, and game-catalog panel"
+requires-python = ">=3.11"
+dependencies = [
+  "PySide6>=6.6,<7",
+  "cryptography>=42",
+]
+
+[project.scripts]
+kodyazar = "ky_gameplayer.__main__:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ky_gameplayer*"]

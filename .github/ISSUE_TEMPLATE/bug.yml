@@ -1,0 +1,49 @@
+name: Bug report
+description: Something KodYazar Client did wrong, crashed on, or failed to connect
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Expected vs actual. Paste the relevant log lines from the cache logs folder (redact tokens and cookies).
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "1.0.0 (pyproject.toml) or commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Linux
+        - Windows
+        - macOS
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "python3 --version"
+  - type: dropdown
+    id: client
+    attributes:
+      label: Discord client
+      options:
+        - Discord Stable
+        - Discord Canary
+        - Discord PTB
+        - Vesktop
+        - Vencord desktop
+        - Other / none
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: From `%LOCALAPPDATA%\kodyazar\logs` / `~/.cache/kodyazar/logs` / `~/Library/Caches/kodyazar/logs`. Strip authorization headers.

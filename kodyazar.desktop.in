@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=KodYazar Client
+Comment=KodYazar Discord paneli
+Exec=python3 RUN_PY
+Path=APP_ROOT
+Icon=APP_ROOT/assets/icon.png
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true
+StartupWMClass=KodYazar Client

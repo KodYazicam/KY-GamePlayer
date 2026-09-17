@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=KodYazar Client
+Comment=KodYazar Discord panel — Rich Presence, quests, game catalog
+Exec=python3 run.py
+Path=.
+Icon=assets/icon.png
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true
+StartupWMClass=KodYazar Client
+# Generated at runtime by ky_gameplayer.autostart.install_desktop with absolute paths.
+# This committed copy is a portable sample. Prefer enabling "Start with system"
+# inside the app, which writes ~/.local/share/applications/kodyazar.desktop.
