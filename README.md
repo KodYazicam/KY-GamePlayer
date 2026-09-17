@@ -30,7 +30,7 @@ Source : https://github.com/KodYazicam/KY-GamePlayer
 
 Not on PyPI. Clone the repo. Discord Stable / Canary / PTB / Vesktop / Vencord on **Linux, Windows, macOS**.
 
-This is a **local user client**. It reads the already-logged-in Discord token on this machine and talks to Discord IPC + API v9. It does not send credentials to KodYazicam. Unofficial user-token automation can violate Discord’s terms — you run it at your own risk. See [Security](#security).
+This is a **local user client**. It reads the already-logged-in Discord token on this machine and talks to Discord IPC + API v9. It does not send credentials to KodYazicam. Unofficial user-token automation can violate Discord’s terms — you run it at your own risk. See [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -40,20 +40,21 @@ This is a **local user client**. It reads the already-logged-in Discord token on
 2. [Feature surface](#feature-surface)
 3. [Requirements](#requirements)
 4. [Install and first boot](#install-and-first-boot)
-5. [Membership lock](#membership-lock)
-6. [Tabs](#tabs)
-7. [Games / Rich Presence](#games--rich-presence)
-8. [Science farm](#science-farm)
-9. [Quests](#quests)
-10. [Account, badges, privacy](#account-badges-privacy)
-11. [Data on disk](#data-on-disk)
-12. [Keyboard](#keyboard)
-13. [Project layout](#project-layout)
-14. [Development plan](#development-plan)
-15. [Tests and CI](#tests-and-ci)
-16. [Troubleshooting](#troubleshooting)
-17. [FAQ](#faq)
-18. [License](#license--kyal-10)
+5. [Windows EXE and antivirus](#windows-exe-and-antivirus)
+6. [Membership lock](#membership-lock)
+7. [Tabs](#tabs)
+8. [Games / Rich Presence](#games--rich-presence)
+9. [Science farm](#science-farm)
+10. [Quests](#quests)
+11. [Account, badges, privacy](#account-badges-privacy)
+12. [Data on disk](#data-on-disk)
+13. [Keyboard](#keyboard)
+14. [Project layout](#project-layout)
+15. [Development plan](#development-plan)
+16. [Tests and CI](#tests-and-ci)
+17. [Troubleshooting](#troubleshooting)
+18. [FAQ](#faq)
+19. [License](#license--kyal-10)
 
 Long form:
 
@@ -126,7 +127,7 @@ python3 run.py
 
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → unzip → `KodYazar\KodYazar.exe` (keep `_internal`). VirusTotal: zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/65](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) (Microsoft `Wacatac.B!ml` + 2 heuristics; sandbox [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior) has no network/drops). Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → unzip the **whole** folder → `KodYazar\KodYazar.exe` (leave `_internal` next to it). SmartScreen may warn; that is expected — see [Windows EXE and antivirus](#windows-exe-and-antivirus).
 - **From source:** `kurulum.bat` once, then `windows.bat`.
 - **Local EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
@@ -142,6 +143,53 @@ First boot:
 Ctrl+C / SIGTERM quit. Close-to-tray when a tray icon exists.
 
 Full OS notes: [`docs/install.md`](docs/install.md).
+
+---
+
+## Windows EXE and antivirus
+
+The GitHub Release is an **unsigned PyInstaller folder**, not a signed installer from Microsoft Store. Windows has never seen this publisher, so SmartScreen / Defender often say “Windows protected your PC” or quarantine the file. That is normal for this kind of build. It is **not** a signature from us that the file is malware, and it is **not** a signature that it is perfectly clean either.
+
+If you do not want to trust a packed exe, skip the zip. Clone this repo and run `python run.py` (or `kurulum.bat` / `windows.bat`). Same program, no packer.
+
+### What VirusTotal actually showed (v1.0.0, 17 Sep 2026)
+
+We uploaded both the zip and `KodYazar.exe`. They are scored **separately**:
+
+| What you download | Score | Link |
+| --- | --- | --- |
+| The zip | **0 / 66** | [analysis](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection) |
+| `KodYazar.exe` inside it | **3 / 65** | [detection](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) · [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior) |
+
+**0/66 on the zip does not mean the exe is clean.** VirusTotal looked at the container. Windows looks at the PE. Use the exe row.
+
+The three flags on the exe:
+
+1. **Microsoft** — `Trojan:Win32/Wacatac.B!ml`  
+   The `!ml` means *machine learning*, not a hand-written signature. Microsoft uses this label a lot on unsigned, packed programs. It is a generic bucket, not “we identified KodYazar as Wacatac.”
+2. **Arctic Wolf** — `Unsafe` (no family name)
+3. **SecureAge** — `Malicious` (no family name)
+
+Kaspersky, ESET, Bitdefender, Malwarebytes, CrowdStrike, ClamAV, Avast, Sophos, Symantec did **not** flag it. VirusTotal’s headline “trojan” is just those three rows rolled into a word.
+
+Then the sandboxes ran it (CAPE and Zenbox). That report is the useful one:
+
+- no extra files dropped
+- no network connections
+- no IDS / Sigma hits
+- the only process was `KodYazar.exe` itself
+
+What *did* look “weird” to static engines is the **overlay**: about 1.8 MB of high-entropy bytes stuck on the end of the PE (entropy ~8.0). That is how PyInstaller ships the Python payload. Heuristics read “packed / obfuscated” and stop there. The compile time on the PE is 17 Sep 2026 19:26 UTC — the same minute GitHub Actions built it.
+
+Hashes so you can check the bytes yourself: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md).
+
+### If Windows still blocks it
+
+1. Prefer source (`python run.py`) if you can.
+2. If you use the zip: keep `_internal` beside the exe. Copying only `KodYazar.exe` to the Desktop is how the sandbox looked — the app cannot find Qt or `games.json`.
+3. SmartScreen: More info → Run anyway. Defender: restore from quarantine if you decided to trust this repo.
+
+We will not paste a fake “0/70” badge. Those numbers change every reanalyze.
 
 ---
 
@@ -311,6 +359,7 @@ Quick hits:
 - Join the guild on the **same** account as the harvested token
 - WSL cannot see Windows named pipes — run on Windows
 - Copy the whole `dist\KodYazar` folder, not only the exe
+- SmartScreen on the release zip: unsigned PyInstaller — [Windows EXE and antivirus](#windows-exe-and-antivirus)
 
 ---
 
@@ -325,6 +374,8 @@ Quick hits:
 **Does extra pin show two games?** Official Discord: no. Vesktop/arRPC: maybe.
 
 **Is `games.json` complete?** It is Discord’s detectable dump at ship time. Refresh later via planned 1.1 sync (`cdn.discordapp.com/detectables/games.json`).
+
+**VirusTotal says 3 vendors flagged the exe. Is it malware?** We are not going to say “no” as a slogan. We will say what the report actually contains: three generic ML/heuristic labels, no family name, and a sandbox that did not drop files or open the network. If you do not want a packed binary, run `python run.py` from this tree.
 
 ---
 

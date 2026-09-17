@@ -70,3 +70,11 @@ Install the wheel from `requirements.txt` inside the venv. Mixing system Qt and 
 ## EXE missing games.json
 
 Copy the **entire** `dist\KodYazar` folder. `paths.resource` looks in `_internal`. Rebuild with `packaging\windows\build.bat` after pulling a new `games.json`.
+
+## SmartScreen / Defender on the release zip
+
+Unsigned PyInstaller. Windows has never seen this publisher. That warning is expected.
+
+v1.0.0 VirusTotal: zip 0/66, exe 3/65 (Microsoft `Wacatac.B!ml` + two nameless heuristics). Sandbox: no network, no dropped files. Full story: [README — Windows EXE and antivirus](../README.md#windows-exe-and-antivirus). Hashes: [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md).
+
+If you do not want the packed file, run `python run.py` from a clone.

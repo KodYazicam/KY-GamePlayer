@@ -44,9 +44,11 @@ The app refuses the main UI unless `/users/@me/guilds` (or guild member) shows g
 
 ## Windows EXE / antivirus
 
-Release zips are **unsigned PyInstaller** onedirs. Heuristic engines commonly flag high-entropy overlays and process-list APIs (`CreateToolhelp32Snapshot` is used on purpose — game detect). That is not a signed “0 detections” claim.
+The release zip is an **unsigned PyInstaller folder**. Windows has never seen this publisher, so SmartScreen will warn. That is expected.
 
-v1.0.0 (2026-09-17 20:25 UTC): zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/65](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) — Microsoft `Trojan:Win32/Wacatac.B!ml`, Arctic Wolf `Unsafe`, SecureAge `Malicious`. Sandbox [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior): no dropped files, no network. Zip score is the container; SmartScreen looks at the PE. Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). Prefer `python run.py` if you do not want a packed binary.
+We published what VirusTotal actually said — not a fake “0/70” badge. Short version: zip 0/66, exe 3/65 (Microsoft `Wacatac.B!ml` plus two nameless heuristics). The sandbox dropped nothing and opened no network. The zip score is the container; Windows looks at the PE.
+
+Full write-up: [README — Windows EXE and antivirus](README.md#windows-exe-and-antivirus). Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). If you do not want a packed binary, run `python run.py` from this tree.
 
 ## Reporting
 

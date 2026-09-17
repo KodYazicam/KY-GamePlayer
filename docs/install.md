@@ -69,9 +69,9 @@ Tagged releases (`v*`) run [`.github/workflows/release.yml`](../.github/workflow
 - matching `.sha256`
 - `HASHES.txt` (exe + zip SHA-256 / SHA-1 / MD5 + VirusTotal permalinks)
 
-Unzip the **whole** folder and run `KodYazar\KodYazar.exe`. The exe alone is not enough (`_internal` holds PySide6 + `games.json`).
+Unzip the **whole** folder and run `KodYazar\KodYazar.exe`. The exe alone is not enough (`_internal` holds PySide6 + `games.json`). SmartScreen will likely warn: this is an unsigned PyInstaller build, not a Store app.
 
-v1.0.0 hashes: [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md). VirusTotal the **exe** (2.1 MB), not only the 55 MB zip (anonymous web upload cap is 32 MB). Unsigned PyInstaller often looks packed to AV heuristics.
+v1.0.0: hashes in [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md). What VirusTotal actually said (zip 0/66, exe 3/65, sandbox quiet): [README — Windows EXE and antivirus](../README.md#windows-exe-and-antivirus). Scan the **exe** (2.1 MB) if you upload it yourself; the zip is over VirusTotal’s 32 MB anonymous cap.
 
 Local rebuild:
 

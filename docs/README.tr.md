@@ -89,7 +89,7 @@ python3 run.py
 
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → aç → `KodYazar\KodYazar.exe`. VirusTotal: zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/65](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) (Microsoft `Wacatac.B!ml` + 2 heuristic; [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior): ağ/drop yok). Hash: [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → klasörün **hepsini** aç → `KodYazar\KodYazar.exe` (`_internal` yanında kalsın). SmartScreen uyarabilir; aşağıya bak.
 - **Kaynak:** bir kez `kurulum.bat`, sonra `windows.bat`.
 - **Yerel EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
@@ -98,6 +98,53 @@ macOS: aynı pip + `run.py`.
 İlk açılış: Discord açık → sunucuya katıl → bu program → kilit token’ı okur → üyelik doğrulanınca sekmeler.
 
 Ayrıntı: [`install.md`](install.md).
+
+---
+
+## Windows EXE ve antivirüs
+
+GitHub’daki zip **imzasız bir PyInstaller klasörü**. Microsoft Store uygulaması değil. Windows bu yayımcıyı hiç görmediği için SmartScreen “Windows PC’nizi korudu” der veya Defender karantinaya atar. Bu tür derlemelerde normal. “Zararlıdır” demek değil; “yüzde yüz temizdir” demek de değil.
+
+Paketlenmiş exe’ye güvenmek istemiyorsan zip’i indirme. Repoyu klonla, `python run.py` veya `kurulum.bat` / `windows.bat` çalıştır. Aynı program, paketleyici yok.
+
+### VirusTotal ne dedi (v1.0.0, 17 Eyl 2026)
+
+Zip ve `KodYazar.exe` **ayrı** tarandı:
+
+| İndirdiğin şey | Skor | Link |
+| --- | --- | --- |
+| Zip | **0 / 66** | [analiz](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection) |
+| İçindeki `KodYazar.exe` | **3 / 65** | [tespit](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) · [davranış](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior) |
+
+**Zip’te 0/66, exe’nin temiz olduğu anlamına gelmez.** VirusTotal kutuyu baktı. Windows PE’ye bakar. Önemli satır exe satırı.
+
+Exe’deki üç işaret:
+
+1. **Microsoft** — `Trojan:Win32/Wacatac.B!ml`  
+   `!ml` = makine öğrenmesi, elle yazılmış imza değil. Microsoft bunu imzasız / paketlenmiş programlara sık yapıştırır. “KodYazar = Wacatac” demek değil; genel bir kova.
+2. **Arctic Wolf** — `Unsafe` (aile adı yok)
+3. **SecureAge** — `Malicious` (aile adı yok)
+
+Kaspersky, ESET, Bitdefender, Malwarebytes, CrowdStrike, ClamAV, Avast, Sophos, Symantec **işaretlemedi**. VirusTotal’ın başlıktaki “trojan” kelimesi bu üç satırın toplanması.
+
+Sonra sandbox çalıştırdı (CAPE ve Zenbox). Asıl bakılacak yer burası:
+
+- ekstra dosya bırakmadı
+- ağa çıkmadı
+- IDS / Sigma yok
+- tek süreç `KodYazar.exe`
+
+Statik motorların “garip” dediği şey **overlay**: PE’nin sonuna yapışmış ~1,8 MB yüksek entropili veri (entropi ~8,0). PyInstaller Python yükünü böyle taşır. Heuristik “paketli / gizlenmiş” deyip durur. PE derleme saati 17 Eyl 2026 19:26 UTC — GitHub Actions’ın derlediği dakika.
+
+Byte’ları kendin doğrula: [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md).
+
+### Windows hâlâ kesiyorsa
+
+1. Yapabiliyorsan kaynaktan çalıştır (`python run.py`).
+2. Zip kullanıyorsan `_internal` exe’nin yanında kalsın. Sadece `KodYazar.exe`’yi Masaüstü’ne kopyalamak sandbox’ın gördüğü şey; Qt ve `games.json` bulunamaz.
+3. SmartScreen: Diğer bilgiler → Yine de çalıştır. Defender: bu repoya güveniyorsan karantinadan geri al.
+
+Sahte “0/70” rozeti koymuyoruz. Sayı her taramada değişir.
 
 ---
 
@@ -227,6 +274,8 @@ GitHub Actions: Python 3.11 / 3.12 / 3.13, PySide6 kurulmaz.
 **İki oyun birden?** Resmi Discord hayır. Vesktop/arRPC belki.
 
 **`games.json` güncel mi?** Yayın anındaki detectable dökümü. 1.1’de CDN’den yenileme planı var.
+
+**VirusTotal 3 tespit — virüs mü?** Hayır diyecek kadar emin değiliz; evet diyecek kadar da değil. Üçü de aile adı olmayan ML/heuristic. Sandbox ağ ve drop görmedi. Paketlenmiş exe istemiyorsan `python run.py`.
 
 ---
 

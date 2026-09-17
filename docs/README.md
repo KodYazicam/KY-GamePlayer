@@ -13,7 +13,7 @@ The root [`README.md`](../README.md) is the English operator entry. This folder 
 | [`troubleshooting.md`](troubleshooting.md) | Operators | “Discord closed”, cookie v20, membership fail, IPC READY timeout. |
 | [`roadmap.md`](roadmap.md) | Everyone | Versioned development plan (also summarized in the root README). |
 | [`release-notes.md`](release-notes.md) | GitHub Releases | Body attached to every `v*` tag (Windows zip instructions). |
-| [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md) | Operators | SHA-256 / VirusTotal permalinks for the v1.0.0 exe and zip. |
+| [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md) | Operators | SHA-256 and the v1.0.0 VirusTotal rows. Story lives in the root README. |
 
 Code-level READMEs (do not duplicate long prose here):
 

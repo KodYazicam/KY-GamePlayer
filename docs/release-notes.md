@@ -14,16 +14,20 @@ Windows **onedir** build from `packaging/windows/KodYazar.spec`.
 - Source: clone and `python run.py` (Linux / macOS / Windows)
 - Windows from source: `kurulum.bat` then `windows.bat`
 
-## Verify
+## Antivirus / VirusTotal
 
-Hashes for **this tag** (`v1.0.0`): [`docs/HASHES-v1.0.0.md`](https://github.com/KodYazicam/KY-GamePlayer/blob/main/docs/HASHES-v1.0.0.md) and the `HASHES.txt` asset on the release.
+This zip is **unsigned PyInstaller**. SmartScreen will likely warn. That is the same class of warning you get from any random GitHub EXE, not a special KodYazar finding.
 
-| File | SHA-256 | VirusTotal (2026-09-17) |
-| --- | --- | --- |
-| `KodYazar.exe` | `aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595` | **3/65** — [detection](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) · [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior) |
-| zip | `81cc6d4ca19fe83835d61f264fbb45bc93aacdb7bf609cb884e310ebb79ad18b` | **0/66** — [analysis](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection) |
+We scanned both files (17 Sep 2026):
 
-The 3 exe flags: Microsoft `Trojan:Win32/Wacatac.B!ml` (ML), Arctic Wolf `Unsafe`, SecureAge `Malicious`. ESET / Kaspersky / BitDefender / Malwarebytes / CrowdStrike: clean. CAPE+Zenbox: **no** dropped files, **no** network, **no** sandbox detections — only `KodYazar.exe` starting. Zip 0/66 is the container, not the PE.
+- **Zip — 0/66.** VirusTotal looked at the container. [analysis](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection)
+- **`KodYazar.exe` — 3/65.** Microsoft `Trojan:Win32/Wacatac.B!ml` (machine learning, generic packed-PE bucket), Arctic Wolf `Unsafe`, SecureAge `Malicious`. Kaspersky, ESET, Bitdefender, Malwarebytes, CrowdStrike: clean. [detection](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection)
+
+The sandboxes then ran the exe: **no dropped files, no network**, only `KodYazar.exe` itself. [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior)
+
+**0/66 on the zip is not “the exe is clean.”** Windows looks at the PE. If you do not want a packed binary, clone the repo and run `python run.py`.
+
+Hashes: [`docs/HASHES-v1.0.0.md`](https://github.com/KodYazicam/KY-GamePlayer/blob/main/docs/HASHES-v1.0.0.md) and `HASHES.txt` on this release. Longer write-up: [README](https://github.com/KodYazicam/KY-GamePlayer#windows-exe-and-antivirus).
 
 ## Notes
 
