@@ -61,15 +61,22 @@ Flatpak/Snap Discord: IPC sockets are searched under `$XDG_RUNTIME_DIR/app/com.d
    - If `.venv` is missing, it calls `kurulum.bat`.
    - Prefers `pythonw.exe` (no console). Falls back to `python.exe`.
 
-### EXE
+### EXE (GitHub Release)
 
-On a Windows machine with Python:
+Tagged releases (`v*`) run [`.github/workflows/release.yml`](../.github/workflows/release.yml) on `windows-latest` and attach:
+
+- `KodYazar-Client-vX.Y.Z-windows-x64.zip`
+- matching `.sha256`
+
+Unzip the **whole** folder and run `KodYazar\KodYazar.exe`. The exe alone is not enough (`_internal` holds PySide6 + `games.json`).
+
+Local rebuild:
 
 ```bat
 packaging\windows\build.bat
 ```
 
-Ship the whole `dist\KodYazar\` directory. See [`packaging/windows/README.md`](../packaging/windows/README.md).
+See [`packaging/windows/README.md`](../packaging/windows/README.md).
 
 Discord must be open for named pipe `\\.\pipe\discord-ipc-0` … `-9` (Stable / Canary / PTB / Vesktop). Cookie v10/v11 decrypts with DPAPI + AES-GCM. App-Bound **v20** cookies are skipped — paste cookie on the lock screen if harvest fails.
 

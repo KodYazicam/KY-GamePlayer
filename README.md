@@ -124,12 +124,11 @@ python3 -m pip install -r requirements.txt
 python3 run.py
 ```
 
-Windows (no EXE):
+Windows:
 
-1. Once: `kurulum.bat` (Python 3.11+, PATH, venv, PySide6)
-2. Then: `windows.bat` — creates venv if missing, starts `pythonw` (no console)
-
-EXE: `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe` (copy the whole folder).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → `KodYazar-Client-v*-windows-x64.zip` → unzip → `KodYazar\KodYazar.exe` (keep `_internal`).
+- **From source:** `kurulum.bat` once, then `windows.bat`.
+- **Local EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
 macOS: same `pip` + `run.py`. Token/IPC under Application Support / tmp.
 
@@ -281,7 +280,7 @@ Full checklist: [`docs/roadmap.md`](docs/roadmap.md). Short version:
 
 | Stage | Goal |
 | --- | --- |
-| **1.0.x now** | Docs, CI, GitHub, `icon.ico`, social preview |
+| **1.0.x now** | Docs, CI, GitHub, `icon.ico`, Windows release zip. Social preview still open. |
 | **1.1** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, persist window geometry |
 | **1.2** | Owned-app asset browser, Listening helper, extra-slot UX when official Discord cannot stack |
 | **1.3** | Science dry-run, fingerprint capture UI, confirm before farming the full catalog |

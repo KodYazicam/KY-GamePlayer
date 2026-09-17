@@ -12,6 +12,7 @@ The root [`README.md`](../README.md) is the English operator entry. This folder 
 | [`discord.md`](discord.md) | Contributors | IPC opcodes, REST routes, science events, quests. |
 | [`troubleshooting.md`](troubleshooting.md) | Operators | “Discord closed”, cookie v20, membership fail, IPC READY timeout. |
 | [`roadmap.md`](roadmap.md) | Everyone | Versioned development plan (also summarized in the root README). |
+| [`release-notes.md`](release-notes.md) | GitHub Releases | Body attached to every `v*` tag (Windows zip instructions). |
 
 Code-level READMEs (do not duplicate long prose here):
 

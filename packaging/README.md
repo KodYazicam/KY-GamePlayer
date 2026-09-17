@@ -18,7 +18,9 @@ Windows first-run: `kurulum.bat` then `windows.bat` (see [`docs/install.md`](../
 
 Output: `dist/KodYazar/KodYazar.exe` (onedir COLLECT, not one-file). `ky_gameplayer.paths.app_root()` looks next to the exe, in `_MEIPASS`, and in `_internal` for `games.json`.
 
-Build on Windows (not in this Linux CI):
+GitHub Actions [`.github/workflows/release.yml`](../.github/workflows/release.yml) builds this zip on every `v*` tag (`windows-latest`, Python 3.12) and uploads it to the GitHub Release.
+
+Local rebuild:
 
 ```bat
 packaging\windows\build.bat

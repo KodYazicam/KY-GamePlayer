@@ -22,6 +22,8 @@ Bundled:
 
 `ky_gameplayer.paths.resource()` resolves frozen paths. If you add a data file, add it to `datas` **and** load it via `resource()`.
 
+CI (tag `v*`): same spec on `windows-latest`, zips `dist\KodYazar` as `KodYazar-Client-<tag>-windows-x64.zip`, SHA-256 sidecar, `gh release create`.
+
 ## After the build
 
 Copy the whole `dist\KodYazar\` folder. The exe alone is not enough (`_internal` holds PySide6 + `games.json`).

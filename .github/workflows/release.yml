@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt "pyinstaller>=6,<7"
+
+      - name: Build EXE
+        run: pyinstaller --noconfirm --clean packaging/windows/KodYazar.spec
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $name = "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip"
+          if (-not (Test-Path "dist\KodYazar\KodYazar.exe")) {
+            throw "dist\KodYazar\KodYazar.exe missing"
+          }
+          Compress-Archive -Path "dist\KodYazar" -DestinationPath $name -Force
+          $hash = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Encoding ascii -NoNewline -Path "$name.sha256" -Value "$hash  $name`n"
+          Get-Item dist\KodYazar\KodYazar.exe, $name | Format-Table Name, Length
+          Get-Content "$name.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KodYazar-Client-${{ github.ref_name }}-windows-x64
+          path: |
+            KodYazar-Client-${{ github.ref_name }}-windows-x64.zip
+            KodYazar-Client-${{ github.ref_name }}-windows-x64.zip.sha256
+          if-no-files-found: error
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip" \
+            "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip.sha256" \
+            --title "KodYazar Client ${{ github.ref_name }}" \
+            --notes-file docs/release-notes.md

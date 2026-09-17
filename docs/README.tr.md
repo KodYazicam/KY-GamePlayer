@@ -87,12 +87,11 @@ python3 -m pip install -r requirements.txt
 python3 run.py
 ```
 
-Windows (EXE yok):
+Windows:
 
-1. Bir kez `kurulum.bat`
-2. Sonra `windows.bat` — `.venv` yoksa kurulumu çağırır, `pythonw` ile konsolsuz açar
-
-EXE: `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe` (klasörün tamamını kopyala).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → `KodYazar-Client-v*-windows-x64.zip` → aç → `KodYazar\KodYazar.exe` (`_internal` kalsın).
+- **Kaynak:** bir kez `kurulum.bat`, sonra `windows.bat`.
+- **Yerel EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
 macOS: aynı pip + `run.py`.
 
@@ -185,7 +184,7 @@ Tam liste: [`roadmap.md`](roadmap.md).
 
 | Aşama | Hedef |
 | --- | --- |
-| **1.0.x şimdi** | Dokümantasyon, CI, GitHub, `icon.ico`, sosyal önizleme |
+| **1.0.x şimdi** | Dokümantasyon, CI, GitHub, `icon.ico`, Windows release zip. Sosyal önizleme açık. |
 | **1.1** | Katalog senkron CLI, Linux desktop’u git kopyasını ezmeden kurmak, macOS `.app`, pencere geometrisi |
 | **1.2** | Kendi uygulamanın asset tarayıcısı, Listening yardımcısı, resmi Discord’da ek slot uyarısı |
 | **1.3** | Science dry-run, fingerprint yakalama, tüm kataloğa basmadan onay |

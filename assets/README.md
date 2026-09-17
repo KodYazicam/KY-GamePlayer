@@ -4,7 +4,7 @@ Used by:
 
 - `ky_gameplayer.__main__` → `QApplication.setWindowIcon`
 - `ky_gameplayer.autostart.install_desktop` → Linux `.desktop` `Icon=`
-- `packaging/windows/KodYazar.spec` → PyInstaller `icon=` (PNG fallback; `.ico` is preferred if you add one)
+- `packaging/windows/KodYazar.spec` → PyInstaller `icon=` (`icon.ico`)
 
 | File | Size | Role |
 | --- | --- | --- |
@@ -15,14 +15,12 @@ Used by:
 | `icon48.png` | 48×48 | GNOME/KDE app grid. |
 | `icon32.png` | 32×32 | Title bar / small launchers. |
 | `icon16.png` | 16×16 | Favicon-scale. |
+| `icon.ico` | 16–256 multi-size | Windows EXE / shortcut. Built from the PNGs above. |
 
-There is **no** `icon.ico` in the tree. Windows EXE build falls back to `icon.png`. To get a proper multi-size ICO:
+Rebuild the ICO (ImageMagick):
 
 ```bash
-# ImageMagick example
 magick assets/icon16.png assets/icon32.png assets/icon48.png assets/icon64.png assets/icon128.png assets/icon256.png assets/icon.ico
 ```
-
-Then `KodYazar.spec` picks `assets/icon.ico` automatically.
 
 Do not put screenshots, banners, or the 12 MB `games.json` here. CDN game art is downloaded at runtime into the cache dir (`docs/data.md`).
