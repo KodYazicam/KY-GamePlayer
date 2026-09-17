@@ -89,7 +89,7 @@ python3 run.py
 
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → `KodYazar-Client-v*-windows-x64.zip` → aç → `KodYazar\KodYazar.exe` (`_internal` kalsın). Hash ve VirusTotal: [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → aç → `KodYazar\KodYazar.exe`. VirusTotal (2026-09-17): zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/66](https://www.virustotal.com/gui/file-analysis/NGE2NmQ5ZjNhMWZiOWIyY2E5MjQ2YWQyNGZjMWI2MTI6MTc4OTY3Njc1OQ==/detection) (PyInstaller heuristic). Hash: [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md).
 - **Kaynak:** bir kez `kurulum.bat`, sonra `windows.bat`.
 - **Yerel EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 

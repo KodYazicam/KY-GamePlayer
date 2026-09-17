@@ -46,7 +46,7 @@ The app refuses the main UI unless `/users/@me/guilds` (or guild member) shows g
 
 Release zips are **unsigned PyInstaller** onedirs. Heuristic engines commonly flag high-entropy overlays and process-list APIs (`CreateToolhelp32Snapshot` is used on purpose — game detect). That is not a signed “0 detections” claim.
 
-For v1.0.0, hashes and VirusTotal permalinks live in [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). Prefer `python run.py` from this source tree if you do not want a packed binary.
+v1.0.0 (2026-09-17): zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/66](https://www.virustotal.com/gui/file-analysis/NGE2NmQ5ZjNhMWZiOWIyY2E5MjQ2YWQyNGZjMWI2MTI6MTc4OTY3Njc1OQ==/detection). The zip score is the container; SmartScreen looks at the PE. Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). Prefer `python run.py` if you do not want a packed binary.
 
 ## Reporting
 
