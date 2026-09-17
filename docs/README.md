@@ -19,7 +19,7 @@ Code-level READMEs (do not duplicate long prose here):
 - [`../assets/README.md`](../assets/README.md)
 - [`../packaging/README.md`](../packaging/README.md)
 - [`../tests/README.md`](../tests/README.md)
-- [`../.github/README.md`](../.github/README.md)
+- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 
 ```
 Author : Batuhan (KodYazicam)
