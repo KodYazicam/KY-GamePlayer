@@ -46,7 +46,7 @@ The app refuses the main UI unless `/users/@me/guilds` (or guild member) shows g
 
 Release zips are **unsigned PyInstaller** onedirs. Heuristic engines commonly flag high-entropy overlays and process-list APIs (`CreateToolhelp32Snapshot` is used on purpose — game detect). That is not a signed “0 detections” claim.
 
-v1.0.0 (2026-09-17): zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/66](https://www.virustotal.com/gui/file-analysis/NGE2NmQ5ZjNhMWZiOWIyY2E5MjQ2YWQyNGZjMWI2MTI6MTc4OTY3Njc1OQ==/detection). The zip score is the container; SmartScreen looks at the PE. Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). Prefer `python run.py` if you do not want a packed binary.
+v1.0.0 (2026-09-17 20:25 UTC): zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/65](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) — Microsoft `Trojan:Win32/Wacatac.B!ml`, Arctic Wolf `Unsafe`, SecureAge `Malicious`. Sandbox [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior): no dropped files, no network. Zip score is the container; SmartScreen looks at the PE. Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md). Prefer `python run.py` if you do not want a packed binary.
 
 ## Reporting
 

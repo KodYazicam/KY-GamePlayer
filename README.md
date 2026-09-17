@@ -126,7 +126,7 @@ python3 run.py
 
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → unzip → `KodYazar\KodYazar.exe` (keep `_internal`). VirusTotal 2026-09-17: zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/66](https://www.virustotal.com/gui/file-analysis/NGE2NmQ5ZjNhMWZiOWIyY2E5MjQ2YWQyNGZjMWI2MTI6MTc4OTY3Njc1OQ==/detection) (PyInstaller heuristics). Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md).
+- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → unzip → `KodYazar\KodYazar.exe` (keep `_internal`). VirusTotal: zip [0/66](https://www.virustotal.com/gui/file-analysis/Y2ZmZjE3NmQ3NGI2ODAyYTM4MDVjOTE5YjVkY2I1ZTk6MTc4OTY3NjgwNw==/detection), exe [3/65](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/detection) (Microsoft `Wacatac.B!ml` + 2 heuristics; sandbox [behavior](https://www.virustotal.com/gui/file/aa7cd98bba263e8ac8948b66137352f88310f8eebac1ad512d00e12b21f62595/behavior) has no network/drops). Hashes: [`docs/HASHES-v1.0.0.md`](docs/HASHES-v1.0.0.md).
 - **From source:** `kurulum.bat` once, then `windows.bat`.
 - **Local EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
