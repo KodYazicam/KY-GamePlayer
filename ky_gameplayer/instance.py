@@ -28,8 +28,15 @@ def wire(server: QLocalServer, on_raise) -> None:
         sock = server.nextPendingConnection()
         if sock is None:
             return
-        sock.readyRead.connect(lambda: None)
+        # Wait for the peer to send its payload, then verify it matches the
+        # expected b"raise" token before acting.  Without this check any local
+        # process that simply opened a connection to "kodyazar-client-lock"
+        # could force the window to the foreground or probe whether the app
+        # is running.
+        sock.waitForReadyRead(200)
+        data = bytes(sock.readAll())
         sock.disconnected.connect(sock.deleteLater)
-        on_raise()
+        if data == b"raise":
+            on_raise()
 
     server.newConnection.connect(_incoming)
