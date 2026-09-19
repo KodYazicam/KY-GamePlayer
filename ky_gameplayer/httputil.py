@@ -57,12 +57,19 @@ def http_request(
 
 
 def local_locale() -> str:
-    raw = locale_mod.getlocale()[0] or locale_mod.getdefaultlocale()[0] or "tr_TR"
+    raw = locale_mod.getlocale()[0] or _fallback_locale() or "tr_TR"
     text = raw.replace("_", "-")
     if "-" in text:
         lang, region = text.split("-", 1)
         return f"{lang.lower()}-{region.upper()}"
     return "tr-TR"
+
+
+def _fallback_locale() -> str | None:
+    try:
+        return locale_mod.getdefaultlocale()[0]
+    except AttributeError:
+        return None
 
 
 def local_timezone() -> str:
