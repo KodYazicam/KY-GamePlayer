@@ -248,8 +248,6 @@ def _load() -> None:
         "status_clan": ("Clan tag güncellendi", "Clan tag updated"),
         "status_detected": ("Algılandı: {name} pid={pid}", "Detected: {name} pid={pid}"),
         "status_random": ("Random: {name}", "Random: {name}"),
-        "dialog_export": ("Profil dışa aktar", "Export profiles"),
-        "dialog_import": ("Profil içe aktar", "Import profiles"),
         "dialog_science_import": ("Science kimlik JSON", "Science identity JSON"),
         "house_head": ("Rozet kontrol", "Badge control"),
         "house_sub": (
