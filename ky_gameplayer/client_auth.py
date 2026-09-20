@@ -578,17 +578,15 @@ def _decrypt_cookie_value(value: str, encrypted: bytes, aes_key: bytes | None) -
 class _TempConn:
     """sqlite3.Connection wrapper that deletes a temp directory on close.
 
-    Fixes: temp cookie copy left on disk after _open_sqlite returns a
-    successful connection (the caller only calls con.close(), so the
-    shutil.rmtree in the except branch was never reached on the happy path).
+    The caller only calls con.close(), so the shutil.rmtree in the except
+    branch of _open_sqlite is never reached on the happy path; this wrapper
+    makes close() remove the copy. Every other attribute forwards to the
+    wrapped connection.
     """
 
     def __init__(self, con: sqlite3.Connection, tmp_dir: Path) -> None:
         self._con = con
         self._tmp_dir = tmp_dir
-
-    def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
-        return self._con.execute(sql, params)
 
     def close(self) -> None:
         try:
@@ -600,7 +598,7 @@ class _TempConn:
         return getattr(self._con, name)
 
 
-def _open_sqlite(path: Path) -> sqlite3.Connection | None:
+def _open_sqlite(path: Path) -> _TempConn | None:
     uri = f"file:{path}?mode=ro"
     try:
         return sqlite3.connect(uri, uri=True, timeout=1)
@@ -618,7 +616,7 @@ def _open_sqlite(path: Path) -> sqlite3.Connection | None:
             if extra.exists():
                 copy_shared(extra, tmp_dir / f"Cookies{suffix}")
         con = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True, timeout=1)
-        return _TempConn(con, tmp_dir) 
+        return _TempConn(con, tmp_dir)
     except (OSError, sqlite3.Error):
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return None
