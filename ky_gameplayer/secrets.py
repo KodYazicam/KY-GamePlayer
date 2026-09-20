@@ -37,4 +37,10 @@ def save_mapping(data: dict[str, Any], path: Path | None = None) -> None:
         if protected:
             atomic_write(target, b"KY1\x00" + protected, mode=0o600)
             return
+    # On Linux and macOS the payload is stored as plain-text JSON protected
+    # only by filesystem permissions (0o600).  A process running as root or
+    # a disk image capture can therefore read the token and cookie in clear.
+    # Future improvement: use libsecret (Linux) or the macOS Keychain via the
+    # `keyring` package so that the sensitive fields are kept in the OS secret
+    # store instead of a plain file.
     atomic_write(target, encoded, mode=0o600)

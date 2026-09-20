@@ -20,6 +20,8 @@ ANALYTICS_RE = re.compile(rb"__analytics__[^A-Za-z0-9]{0,24}([A-Za-z0-9._-]{20,8
 FP_RE = re.compile(
     rb'executable_fingerprint["\\\s:=]+["\']([A-Za-z0-9+/=_-]{16,128})["\']'
 )
+
+_SAFE_TABLE = re.compile(r"^[A-Za-z0-9_\- ]+$")
 COOKIE_ORDER = (
     "__dcfduid",
     "__sdcfduid",
@@ -573,6 +575,31 @@ def _decrypt_cookie_value(value: str, encrypted: bytes, aes_key: bytes | None) -
     return ""
 
 
+class _TempConn:
+    """sqlite3.Connection wrapper that deletes a temp directory on close.
+
+    Fixes: temp cookie copy left on disk after _open_sqlite returns a
+    successful connection (the caller only calls con.close(), so the
+    shutil.rmtree in the except branch was never reached on the happy path).
+    """
+
+    def __init__(self, con: sqlite3.Connection, tmp_dir: Path) -> None:
+        self._con = con
+        self._tmp_dir = tmp_dir
+
+    def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+        return self._con.execute(sql, params)
+
+    def close(self) -> None:
+        try:
+            self._con.close()
+        finally:
+            shutil.rmtree(self._tmp_dir, ignore_errors=True)
+
+    def __getattr__(self, name: str):
+        return getattr(self._con, name)
+
+
 def _open_sqlite(path: Path) -> sqlite3.Connection | None:
     uri = f"file:{path}?mode=ro"
     try:
@@ -590,7 +617,8 @@ def _open_sqlite(path: Path) -> sqlite3.Connection | None:
             extra = Path(str(path) + suffix)
             if extra.exists():
                 copy_shared(extra, tmp_dir / f"Cookies{suffix}")
-        return sqlite3.connect(f"file:{tmp}?mode=ro", uri=True, timeout=1)
+        con = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True, timeout=1)
+        return _TempConn(con, tmp_dir) 
     except (OSError, sqlite3.Error):
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return None
@@ -722,8 +750,10 @@ def harvest_firefox_token(root: Path) -> tuple[str, str]:
             tables = [r[0] for r in con.execute("select name from sqlite_master where type='table'")]
             for table in tables:
                 try:
-                    safe = table.replace('"', "")
-                    rows = con.execute(f'select * from "{safe}" limit 400')
+                    safe = table.strip()
+                    if not _SAFE_TABLE.match(safe):
+                        continue 
+                    rows = con.execute(f'SELECT * FROM "{safe}" LIMIT 400')
                 except sqlite3.Error:
                     continue
                 for row in rows:
