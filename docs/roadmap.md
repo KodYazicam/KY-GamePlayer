@@ -24,7 +24,8 @@ Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.0.0**.
 
 ## Next (1.1) — packaging and catalog hygiene
 
-- [ ] `download_detectables` button in Help or a `python -m ky_gameplayer.catalog_sync` CLI so `games.json` can refresh without a git pull
+- [x] `python -m ky_gameplayer.catalog_sync` CLI so `games.json` can refresh without a git pull (`--check` reports only, `.bak` backup, refuses suspicious payloads)
+- [ ] `download_detectables` button in Help wrapping the sync CLI
 - [ ] Linux `.desktop` install script that does not rewrite the git copy
 - [ ] macOS `.app` via PyInstaller or Briefcase
 - [ ] Optional one-file Windows EXE (longer start, simpler copy)

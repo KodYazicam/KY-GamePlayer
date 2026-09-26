@@ -373,7 +373,12 @@ Quick hits:
 
 **Does extra pin show two games?** Official Discord: no. Vesktop/arRPC: maybe.
 
-**Is `games.json` complete?** It is Discord’s detectable dump at ship time. Refresh later via planned 1.1 sync (`cdn.discordapp.com/detectables/games.json`).
+**Is `games.json` complete?** It is Discord’s detectable dump at ship time. Refresh it any time without a git pull:
+
+```sh
+python -m ky_gameplayer.catalog_sync --check   # report CDN vs local counts
+python -m ky_gameplayer.catalog_sync           # back up to games.json.bak, then write
+```
 
 **VirusTotal says 3 vendors flagged the exe. Is it malware?** We are not going to say “no” as a slogan. We will say what the report actually contains: three generic ML/heuristic labels, no family name, and a sandbox that did not drop files or open the network. If you do not want a packed binary, run `python run.py` from this tree.
 
