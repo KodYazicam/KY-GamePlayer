@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="assets/banner.svg" alt="KY-GamePlayer — KodYazar Client" width="100%">
+</p>
+
+<p align="center">
   <img src="assets/icon.png" alt="KodYazar Client" width="96" height="96">
 </p>
 

@@ -18,7 +18,7 @@ Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.0.0**.
 - [x] TR/EN i18n
 - [x] This documentation set + GitHub repo
 - [x] GitHub Actions compile + unittest on 3.11–3.13 (workflow committed)
-- [ ] Social preview image (`assets/banner.svg` or PNG) for the GitHub repo
+- [x] Social preview image (`assets/banner.svg`, generated with svgforge) for the GitHub repo
 - [x] `icon.ico` for the Windows EXE
 - [x] Windows onedir zip on GitHub Releases (`v*` tags)
 
