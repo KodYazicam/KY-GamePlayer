@@ -4,7 +4,8 @@ import unittest
 
 from ky_gameplayer.badges import decode_flags
 from ky_gameplayer.brand import APP_TITLE, INVITE_URL, REQUIRED_GUILD_ID
-from ky_gameplayer.discord_rest import house_from_flags, parse_quest, parse_quest_list
+from ky_gameplayer.discord_rest import DiscordRest, house_from_flags, parse_quest, parse_quest_list
+from ky_gameplayer.httputil import rate_limit_stats, reset_rate_limit_stats
 from ky_gameplayer.i18n import set_lang, t
 from ky_gameplayer.membership import _guilds_contain, _member_payload_ok
 
@@ -43,6 +44,28 @@ class RestParseTests(unittest.TestCase):
         self.assertEqual(house_from_flags(1 << 7), 2)
         self.assertEqual(house_from_flags(1 << 8), 3)
         self.assertIsNone(house_from_flags(0))
+
+
+class AssetsAndStatsTests(unittest.TestCase):
+    def test_application_assets_hits_owned_app_route(self) -> None:
+        rest = DiscordRest("token")
+        calls: list[tuple[str, str]] = []
+        rest.request = lambda method, path, body=None: (  # type: ignore[method-assign]
+            calls.append((method, path)),
+            (200, [{"id": "a1", "name": "cover", "type": 1}]),
+        )[1]
+        status, payload = rest.application_assets("1234567890")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload[0]["name"], "cover")
+        self.assertEqual(calls, [("GET", "/applications/1234567890/assets")])
+
+    def test_rate_limit_stats_shape(self) -> None:
+        reset_rate_limit_stats()
+        stats = rate_limit_stats()
+        self.assertEqual(set(stats), {"requests", "rate_limited", "retries"})
+        self.assertEqual(stats["rate_limited"], 0)
+        reset_rate_limit_stats()
+        self.assertEqual(rate_limit_stats()["requests"], 0)
 
 
 class MembershipHelpersTests(unittest.TestCase):

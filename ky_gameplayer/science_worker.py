@@ -118,6 +118,8 @@ class ScienceEngine(QObject):
         jitter: float = 0.05,
         extra_delay: tuple[float, float] = (0.5, 1.5),
         mode: str = "playtime",
+        dry_run: bool = False,
+        confirmed: bool = False,
     ) -> None:
         if self._busy:
             self.failed.emit(t("sci_busy"))
@@ -142,8 +144,10 @@ class ScienceEngine(QObject):
             extra_delay=extra_delay,
             mode=mode,
             cancel=lambda: self._cancel,
-            harvest_first=True,
+            harvest_first=not dry_run,
             preferred=self.preferred,
+            dry_run=dry_run,
+            confirmed=confirmed,
         )
         thread = QThread()
         worker.moveToThread(thread)
@@ -210,6 +214,8 @@ class _FarmWorker(QObject):
         cancel,
         harvest_first: bool = True,
         preferred: RunningClient | None = None,
+        dry_run: bool = False,
+        confirmed: bool = False,
     ) -> None:
         super().__init__()
         self.state = state
@@ -224,6 +230,8 @@ class _FarmWorker(QObject):
         self.cancel = cancel
         self.harvest_first = harvest_first
         self.preferred = preferred
+        self.dry_run = dry_run
+        self.confirmed = confirmed
 
     @Slot()
     def run(self) -> None:
@@ -249,12 +257,15 @@ class _FarmWorker(QObject):
                         self.state.fingerprint,
                         who,
                     )
-            if not self.state.token:
+            if not self.state.token and not self.dry_run:
                 self.failed.emit(t("sci_no_token"))
                 return
-            ensure_analytics(self.state, self.state_path)
+            if self.dry_run:
+                self.status.emit("sci_dry_run", {"n": len(self.games)})
+            else:
+                ensure_analytics(self.state, self.state_path)
             session = ScienceSession.new()
-            client = ScienceClient(self.state, session)
+            client = ScienceClient(self.state, session, dry_run=self.dry_run)
         except Exception as exc:
             self.failed.emit(str(exc))
             return
@@ -280,5 +291,6 @@ class _FarmWorker(QObject):
             extra_delay=self.extra_delay,
             cancel=self.cancel,
             on_batch=on_batch,
+            confirmed=self.confirmed or self.dry_run,
         )
         self.finished.emit(self.mode, ok, total)

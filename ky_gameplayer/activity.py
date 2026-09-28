@@ -224,3 +224,38 @@ class ActivityConfig:
             activity["emoji"] = emoji
 
         return _clean(activity)
+
+
+def listening_config(
+    track: str,
+    artist: str = "",
+    *,
+    album: str = "",
+    art_url: str = "",
+    duration_s: int = 0,
+    game_id: str = "",
+) -> ActivityConfig:
+    """Spotify-style type 2 (Listening) helper.
+
+    Builds a ready-to-send Listening activity: the track name is the
+    activity name, ``artist — album`` becomes details, the cover art
+    fills large_image, and elapsed/end timestamps are set so Discord
+    renders a progress bar. ``duration_s`` <= 0 leaves timestamps off.
+    """
+    import time as _time
+
+    details = " — ".join(part for part in (artist, album) if part)
+    start = int(_time.time()) if duration_s > 0 else None
+    end = int(_time.time() + max(0, duration_s)) if duration_s > 0 else None
+    return ActivityConfig(
+        type=2,
+        name=(track or "").strip()[:128] or None,
+        details=details or None,
+        large_image=(art_url or "").strip()[:256] or None,
+        large_text=album or None,
+        start=start,
+        end=end,
+        use_end=bool(end),
+        use_elapsed=bool(end),
+        application_id=game_id or None,
+    )

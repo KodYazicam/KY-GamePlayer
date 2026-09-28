@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListView,
@@ -47,6 +48,7 @@ from .activity import (
     PARTY_PRIVACY,
     STATUS_DISPLAY_TYPES,
     ActivityConfig,
+    listening_config,
 )
 from .detect import DetectedGame, ProcessIndex
 from .games import Game, GameCatalog
@@ -67,6 +69,8 @@ from .preview import PresencePreview
 from .processes import list_processes
 from .profiles import ProfileStore
 from .quest_engine import QuestEngine
+from .httputil import rate_limit_stats
+from .science import HARD_CAP_GAMES
 from .science_worker import ScienceEngine
 from .store import game_store_links, primary_store_button
 
@@ -172,6 +176,14 @@ class MainWindow(QWidget):
 
         self.catalog = GameCatalog.load(resource("games.json"))
         self.store = ProfileStore(_config_dir() / "profiles.json")
+        geometry = self.store.settings().get("window_geometry")
+        if isinstance(geometry, str) and geometry:
+            try:
+                self.restoreGeometry(bytes.fromhex(geometry))
+            except ValueError:
+                pass
+        self._lock_timeout = max(5, int(self.store.settings().get("lock_timeout") or 20))
+        self._harvest_enabled = bool(self.store.settings().get("harvest_enabled", True))
         self.images = ImageCache(_cache_dir() / "cdn", self)
         self.science = ScienceEngine(_config_dir() / "science_state.json", self)
         self.quest_engine = QuestEngine(self)
@@ -300,6 +312,7 @@ class MainWindow(QWidget):
         self.pages.status_apply.connect(self._apply_status)
         self.pages.clan_apply.connect(self._apply_clan)
         self.pages.account_refresh.connect(self._refresh_account)
+        self.pages.settings_changed.connect(self._on_setting_changed)
         self.quest_engine.quests.connect(self.pages.set_quests)
         self.quest_engine.progress.connect(self.pages.update_quest)
         self.quest_engine.me.connect(self.pages.set_account)
@@ -313,6 +326,13 @@ class MainWindow(QWidget):
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 5)
         splitter.setSizes([420, 860])
+        self.splitter = splitter
+        saved_sizes = self.store.settings().get("splitter_sizes")
+        if isinstance(saved_sizes, list) and len(saved_sizes) == 2:
+            try:
+                splitter.setSizes([max(80, int(size)) for size in saved_sizes])
+            except (TypeError, ValueError):
+                pass
         self.tabs.addTab(self.pages.house_page, i18n("tab_house"))
         self.tabs.addTab(self.pages.badge_page, i18n("tab_badges"))
         self.tabs.addTab(game, i18n("tab_games"))
@@ -398,7 +418,7 @@ class MainWindow(QWidget):
         preferred = self._preferred_client
         self.member_label.setText(i18n("member_checking"))
         self.lock_text.setText(i18n("member_checking"))
-        QTimer.singleShot(20000, self._membership_timeout)
+        QTimer.singleShot(self._lock_timeout * 1000, self._membership_timeout)
 
         def work() -> None:
             from .client_auth import ClientAuth
@@ -1180,6 +1200,15 @@ class MainWindow(QWidget):
         self.pid_box.currentIndexChanged.connect(self._on_pid_picked)
         self.auto_assets = QCheckBox(i18n("auto_assets"))
         self.auto_assets.setChecked(True)
+        self.template_box = QCheckBox(i18n("template_use"))
+        self.template_box.setChecked(True)
+        self.template_box.setToolTip(i18n("template_use_tip"))
+        self.btn_template_save = QPushButton(i18n("btn_template_save"))
+        self.btn_listening = QPushButton(i18n("btn_listening"))
+        self.btn_hook = QPushButton(i18n("btn_hook"))
+        self.btn_template_save.clicked.connect(self._save_game_template)
+        self.btn_listening.clicked.connect(self._listening_helper)
+        self.btn_hook.clicked.connect(self._load_hook)
         for widget in (
             self.app_id,
             self.activity_name,
@@ -1188,6 +1217,7 @@ class MainWindow(QWidget):
             self.stream_url,
             self.pid,
             self.auto_assets,
+            self.template_box,
         ):
             self._watch(widget)
         self.app_id.editingFinished.connect(self._on_app_id_entered)
@@ -1203,6 +1233,12 @@ class MainWindow(QWidget):
         pid_row.addWidget(self.btn_pid_self)
         grid.addRow("PID", pid_row)
         grid.addRow("", self.auto_assets)
+        grid.addRow("", self.template_box)
+        helper_row = QHBoxLayout()
+        helper_row.addWidget(self.btn_template_save)
+        helper_row.addWidget(self.btn_listening)
+        helper_row.addWidget(self.btn_hook)
+        grid.addRow("", helper_row)
         return box
 
     def _text_group(self) -> QGroupBox:
@@ -1473,6 +1509,8 @@ class MainWindow(QWidget):
         self.science_on_detect = QCheckBox(i18n("science_on_detect"))
         self.science_on_current = QCheckBox(i18n("science_on_current"))
         self.science_on_current.setChecked(True)
+        self.science_dry_run = QCheckBox(i18n("science_dry_run"))
+        self.science_dry_run.setToolTip(i18n("science_dry_run_tip"))
         self.science_mode = QComboBox()
         self.science_mode.addItem(i18n("science_mode_hours"), "playtime")
         self.science_mode.addItem(i18n("science_mode_played"), "played")
@@ -1525,17 +1563,21 @@ class MainWindow(QWidget):
         self.btn_science_run = QPushButton(i18n("btn_science_run"))
         self.btn_science_stop = QPushButton(i18n("btn_science_stop"))
         self.btn_science_import = QPushButton(i18n("btn_science_import"))
+        self.btn_science_fp_capture = QPushButton(i18n("btn_science_fp_capture"))
+        self.btn_science_fp_capture.setToolTip(i18n("btn_science_fp_capture_tip"))
         self.btn_science_save.clicked.connect(self._save_science_credentials)
         self.btn_science_refresh.clicked.connect(self.science.refresh_analytics)
         self.btn_science_pull.clicked.connect(self._pull_science_from_client)
         self.btn_science_run.clicked.connect(lambda: self._run_science(reason="manual"))
         self.btn_science_stop.clicked.connect(self.science.stop)
         self.btn_science_import.clicked.connect(self._import_science_state)
+        self.btn_science_fp_capture.clicked.connect(self._capture_fingerprint)
         for widget in (
             self.science_enabled,
             self.science_on_random,
             self.science_on_detect,
             self.science_on_current,
+            self.science_dry_run,
             self.science_mode,
             self.science_hours,
             self.science_batch,
@@ -1555,11 +1597,13 @@ class MainWindow(QWidget):
         flags.addWidget(self.science_on_random)
         flags.addWidget(self.science_on_detect)
         flags.addWidget(self.science_on_current)
+        flags.addWidget(self.science_dry_run)
         creds = QHBoxLayout()
         creds.addWidget(self.btn_science_pull)
         creds.addWidget(self.btn_science_save)
         creds.addWidget(self.btn_science_refresh)
         creds.addWidget(self.btn_science_import)
+        creds.addWidget(self.btn_science_fp_capture)
         run_row = QHBoxLayout()
         run_row.addWidget(self.btn_science_run)
         run_row.addWidget(self.btn_science_stop)
@@ -1694,6 +1738,11 @@ class MainWindow(QWidget):
             self.small_image.setText(small)
         self.store.last_game_id = game.id
         self.store.add_recent(game.id)
+        if self.template_box is not None and self.template_box.isChecked():
+            template = self.store.game_template(game.id)
+            if template is not None:
+                self.apply_config(game.id, template)
+                self._log(key="log_template_applied", name=game.name)
         self._fill_game_meta(game)
         self._fill_assets(game)
         self._refresh_fav_buttons()
@@ -1929,6 +1978,16 @@ class MainWindow(QWidget):
         self._refresh_random_countdown()
         self._tick_schedule()
         self._tick_idle()
+        if hasattr(self.pages, "rate_label"):
+            stats = rate_limit_stats()
+            self.pages.rate_label.setText(
+                i18n(
+                    "rate_stats",
+                    requests=stats["requests"],
+                    rate_limited=stats["rate_limited"],
+                    retries=stats["retries"],
+                )
+            )
 
     def _stamp_now(self) -> None:
         self.start_dt.setDateTime(QDateTime.currentDateTime())
@@ -2040,6 +2099,20 @@ class MainWindow(QWidget):
         self.store.delete(name)
         self._refresh_profiles()
 
+    def _on_setting_changed(self, key: str, value: object) -> None:
+        settings = self.store.settings()
+        settings[key] = value
+        self.store.save()
+        if key == "log_level":
+            import logging
+
+            logging.getLogger().setLevel(str(value))
+        elif key == "lock_timeout":
+            self._lock_timeout = max(5, int(value))
+        elif key == "harvest_enabled":
+            self._harvest_enabled = bool(value)
+        self._log(key="log_setting", setting=key, value=str(value))
+
     def _restore_extra_settings(self) -> None:
         settings = self.store.settings()
         interval = int(settings.get("random_interval") or 60)
@@ -2067,6 +2140,9 @@ class MainWindow(QWidget):
         self.science_on_random.setChecked(bool(settings.get("science_on_random", True)))
         self.science_on_detect.setChecked(bool(settings.get("science_on_detect")))
         self.science_on_current.setChecked(bool(settings.get("science_on_current", True)))
+        self.science_dry_run.setChecked(bool(settings.get("science_dry_run")))
+        if hasattr(self, "template_box"):
+            self.template_box.setChecked(bool(settings.get("use_game_templates", True)))
         mode_index = self.science_mode.findData(str(settings.get("science_mode") or "playtime"))
         if mode_index >= 0:
             self.science_mode.setCurrentIndex(mode_index)
@@ -2092,6 +2168,20 @@ class MainWindow(QWidget):
         self._apply_language()
         self._refresh_science_status()
         self._refresh_pid_list()
+        if hasattr(self.pages, "log_level_box"):
+            index = self.pages.log_level_box.findData(str(settings.get("log_level") or "INFO"))
+            if index >= 0:
+                self.pages.log_level_box.blockSignals(True)
+                self.pages.log_level_box.setCurrentIndex(index)
+                self.pages.log_level_box.blockSignals(False)
+        if hasattr(self.pages, "harvest_box"):
+            self.pages.harvest_box.blockSignals(True)
+            self.pages.harvest_box.setChecked(bool(settings.get("harvest_enabled", True)))
+            self.pages.harvest_box.blockSignals(False)
+        if hasattr(self.pages, "lock_timeout"):
+            self.pages.lock_timeout.blockSignals(True)
+            self.pages.lock_timeout.setValue(max(5, int(settings.get("lock_timeout") or 20)))
+            self.pages.lock_timeout.blockSignals(False)
 
     def _save_random_settings(self, *_args) -> None:
         settings = self.store.settings()
@@ -2113,6 +2203,9 @@ class MainWindow(QWidget):
         settings["science_on_random"] = self.science_on_random.isChecked()
         settings["science_on_detect"] = self.science_on_detect.isChecked()
         settings["science_on_current"] = self.science_on_current.isChecked()
+        settings["science_dry_run"] = self.science_dry_run.isChecked()
+        if hasattr(self, "template_box"):
+            settings["use_game_templates"] = self.template_box.isChecked()
         settings["science_mode"] = self.science_mode.currentData()
         settings["science_hours"] = float(self.science_hours.value())
         settings["science_batch"] = int(self.science_batch.value())
@@ -2728,6 +2821,21 @@ class MainWindow(QWidget):
             pool = [self._game]
         if mode == "played":
             hours = 60 / 3600
+        dry_run = self.science_dry_run.isChecked()
+        confirmed = False
+        if not dry_run and len(pool) > HARD_CAP_GAMES:
+            answer = QMessageBox.question(
+                self,
+                APP_TITLE,
+                i18n("confirm_science_all", n=len(pool), cap=HARD_CAP_GAMES),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                self._log(key="log_science_capped", n=len(pool), cap=HARD_CAP_GAMES)
+                self._set_status(i18n("status_science_capped", cap=HARD_CAP_GAMES))
+                return
+            confirmed = True
         self._science_last_ids = [game.id for game in pool]
         extra = max(0.2, float(self.science_delay.value()) * 0.5)
         self.science.start_farm(
@@ -2738,9 +2846,14 @@ class MainWindow(QWidget):
             jitter=float(self.science_jitter.value()),
             extra_delay=(extra, extra + 1.0),
             mode=mode,
+            dry_run=dry_run,
+            confirmed=confirmed,
         )
         self._refresh_science_status()
-        self._log(key="log_science_run", mode=mode, n=len(pool), reason=reason)
+        if dry_run:
+            self._log(key="log_science_dry_run", n=len(pool), reason=reason)
+        else:
+            self._log(key="log_science_run", mode=mode, n=len(pool), reason=reason)
 
     def _save_science_credentials(self) -> None:
         self.science.save_credentials(
@@ -2750,7 +2863,114 @@ class MainWindow(QWidget):
         )
         self._set_status(i18n("status_science_saved"))
 
+    def _capture_fingerprint(self) -> None:
+        """Copy the executable fingerprint from Discord's own disk state."""
+        self.btn_science_fp_capture.setEnabled(False)
+        self._set_status(i18n("fp_capture_busy"))
+
+        def work() -> None:
+            fingerprint = ""
+            message = ""
+            try:
+                from .client_auth import harvest_fingerprint, known_user_data_dirs
+
+                root = None
+                if self._preferred_client is not None and getattr(self._preferred_client, "user_data", None):
+                    root = self._preferred_client.user_data
+                if root is None:
+                    clients = list_running_clients()
+                    if clients:
+                        root = clients[0].user_data
+                if root is None:
+                    dirs = known_user_data_dirs()
+                    root = dirs[0] if dirs else None
+                if root is None:
+                    message = i18n("fp_capture_no_client")
+                else:
+                    fingerprint = harvest_fingerprint(root) or ""
+                    message = i18n("fp_capture_ok") if fingerprint else i18n("fp_capture_empty")
+            except Exception as exc:  # noqa: BLE001 - surfaced to the user
+                message = i18n("fp_capture_fail", exc=exc)
+
+            def done() -> None:
+                self.btn_science_fp_capture.setEnabled(True)
+                if fingerprint:
+                    self.science_fp.setText(fingerprint)
+                    self.science.save_credentials(fingerprint=fingerprint)
+                self._set_status(message)
+                self._log(key="log_fp_capture", message=message)
+
+            QTimer.singleShot(0, done)
+
+        Thread(target=work, daemon=True).start()
+
+    def _save_game_template(self) -> None:
+        if self._game is None:
+            self._set_status(i18n("status_need_game"))
+            return
+        self.store.put_game_template(self._game.id, self.collect())
+        self._set_status(i18n("status_template_saved", name=self._game.name))
+        self._log(key="log_template_saved", name=self._game.name)
+
+    def _listening_helper(self) -> None:
+        track, ok = QInputDialog.getText(self, i18n("listening_title"), i18n("listening_track"))
+        if not ok or not track.strip():
+            return
+        artist, ok = QInputDialog.getText(self, i18n("listening_title"), i18n("listening_artist"))
+        if not ok:
+            return
+        album, ok = QInputDialog.getText(self, i18n("listening_title"), i18n("listening_album"))
+        if not ok:
+            return
+        art, ok = QInputDialog.getText(self, i18n("listening_title"), i18n("listening_art"))
+        if not ok:
+            return
+        duration, ok = QInputDialog.getInt(
+            self, i18n("listening_title"), i18n("listening_duration"), 210, 0, 36000, 30
+        )
+        if not ok:
+            return
+        config = listening_config(
+            track,
+            artist,
+            album=album,
+            art_url=art,
+            duration_s=int(duration),
+            game_id=self.app_id.text().strip(),
+        )
+        self.apply_config(self.app_id.text().strip(), config)
+        self._update_preview()
+        self._set_status(i18n("status_listening_applied"))
+        self._log(key="log_listening_applied", track=track)
+
+    def _load_hook(self) -> None:
+        if not self._require_member():
+            return
+        path, _filter = QFileDialog.getOpenFileName(
+            self, i18n("dialog_hook"), str(Path.home()), "Python (*.py)"
+        )
+        if not path:
+            return
+        try:
+            from .hooks import load_hook, run_hook
+
+            config = run_hook(load_hook(path), self._game)
+        except ValueError as exc:
+            QMessageBox.warning(self, APP_TITLE, i18n("warn_hook", exc=exc))
+            return
+        if config is None:
+            self._set_status(i18n("status_hook_none"))
+            return
+        self.apply_config(self._game.id if self._game else self.app_id.text().strip(), config)
+        self._update_preview()
+        self._set_status(i18n("status_hook_applied", path=Path(path).name))
+        self._log(key="log_hook_applied", path=Path(path).name)
+
     def _pull_science_from_client(self, silent: bool = False) -> None:
+        if not self._harvest_enabled and not silent:
+            self._set_status(i18n("status_harvest_off"))
+            self._log(key="log_harvest_off")
+            return
         auth = self.science.pull_from_client()
         self.science_token.setText(self.science.state.token)
         self.science_cookie.setText(self.science.state.cookie)
@@ -2898,6 +3118,11 @@ class MainWindow(QWidget):
             self._tray = None
         if hasattr(self, "random_enabled") and self.random_enabled.isChecked():
             self.random_enabled.setChecked(False)
+        if hasattr(self, "store"):
+            settings = self.store.settings()
+            settings["window_geometry"] = self.saveGeometry().toHex().data().decode()
+            if hasattr(self, "splitter"):
+                settings["splitter_sizes"] = [int(size) for size in self.splitter.sizes()]
         if hasattr(self, "_save_random_settings"):
             self._save_random_settings()
         self._want_connected = False

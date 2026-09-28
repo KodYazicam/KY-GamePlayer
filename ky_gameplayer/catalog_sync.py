@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from .httputil import http_request
-from .paths import app_root
+from .paths import app_root, atomic_write
 
 DETECTABLES_URL = "https://cdn.discordapp.com/detectables/games.json"
 MIN_GAMES = 10_000
@@ -64,9 +64,8 @@ def sync(
     previous = _count_games(target)
     if backup and target.exists():
         shutil.copy2(target, target.with_name(target.name + ".bak"))
-    target.write_text(
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
+    atomic_write(
+        target, json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
     )
     return written, previous
 

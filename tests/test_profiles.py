@@ -44,6 +44,7 @@ class ProfileStoreTests(unittest.TestCase):
         self.store.merge_import(
             {
                 "profiles": {"x": {"game_id": "1", "activity": {"details": "z"}}},
+                "game_templates": {"7": {"details": "tpl"}},
                 "favorites": ["1"],
                 "last_game_id": "1",
             }
@@ -51,6 +52,27 @@ class ProfileStoreTests(unittest.TestCase):
         self.assertIn("x", self.store.names())
         self.assertEqual(self.store.last_game_id, "1")
         self.assertIn("1", self.store.favorites())
+        template = self.store.game_template("7")
+        assert template is not None
+        self.assertEqual(template.details, "tpl")
+
+    def test_game_templates_roundtrip(self) -> None:
+        cfg = ActivityConfig(type=2, name="Track", details="Artist — Album")
+        self.assertIsNone(self.store.game_template("42"))
+        self.store.put_game_template("42", cfg)
+        loaded = self.store.game_template("42")
+        assert loaded is not None
+        self.assertEqual(loaded.type, 2)
+        self.assertEqual(loaded.name, "Track")
+        self.assertTrue(self.store.delete_game_template("42"))
+        self.assertFalse(self.store.delete_game_template("42"))
+        self.assertIsNone(self.store.game_template("42"))
+        # templates survive a reload
+        self.store.put_game_template("42", cfg)
+        reloaded = ProfileStore(self.path)
+        again = reloaded.game_template("42")
+        assert again is not None
+        self.assertEqual(again.name, "Track")
 
     def test_atomic_write(self) -> None:
         target = Path(self.tmp.name) / "out.txt"

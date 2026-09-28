@@ -99,12 +99,14 @@ Long form:
 | Random | Weighted pool, no-repeat N, countdown, Ctrl+R |
 | Extras | Up to 8 extra IPC connections (Vesktop may stack; official Discord shows one Playing) |
 | Cycle / schedule | Line-based frames; time window; idle clear; auto-reconnect |
-| Science | Hours or “played 1 min”; batch/delay/jitter; pull credentials; DPAPI on Windows |
+| Science | Hours or “played 1 min”; batch/delay/jitter; pull credentials; DPAPI on Windows; dry-run; 2000-game hard cap with confirm |
 | Quests | Scan, enroll, video 1 s, heartbeat ~20 s, claim |
 | Badges | HypeSquad apply/leave; owned flags; gift/Nitro catalog |
 | Privacy | Private / limited / public cards |
 | Account | Custom status, clan/primary guild, entitlement count |
-| Packaging | `kurulum.bat` / `windows.bat`; PyInstaller spec |
+| Editor | Per-game templates, Spotify-style Listening helper, script hooks (`.py` returning `ActivityConfig`) |
+| Settings | Help tab: log level, credential harvest on/off, membership lock timeout; window geometry persisted |
+| Packaging | `kurulum.bat` / `windows.bat`; onedir + optional onefile PyInstaller; macOS `.app`; `catalog_sync` CLI |
 
 ---
 
@@ -254,6 +256,8 @@ Not Rich Presence. `POST https://discord.com/api/v9/science` with `launch_game` 
 
 Needs token + cookie. Fingerprint (`executable_fingerprint`) from Discord’s own detect improves counters. Autonomous checkboxes fire on RPC update / random / detect. **Do not** blast all 24k games without reading [`docs/discord.md`](docs/discord.md) and Discord’s terms.
 
+Safety rails: **dry-run** builds and logs events without POSTing, and sources larger than **2000 games** (e.g. “all”) require a confirm dialog — the engine itself refuses to exceed the cap without explicit confirmation. The identity-tab **fingerprint capture** button copies the value from Discord’s own disk state.
+
 Credentials: `science_state.json` (Windows DPAPI `KY1\x00` prefix, else mode `0600`).
 
 ---
@@ -332,11 +336,10 @@ Full checklist: [`docs/roadmap.md`](docs/roadmap.md). Short version:
 
 | Stage | Goal |
 | --- | --- |
-| **1.0.x now** | Docs, CI, GitHub, `icon.ico`, Windows release zip. Social preview still open. |
-| **1.1** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, persist window geometry |
-| **1.2** | Owned-app asset browser, Listening helper, extra-slot UX when official Discord cannot stack |
-| **1.3** | Science dry-run, fingerprint capture UI, confirm before farming the full catalog |
-| **2.0** | Script hooks, multi-account identity files, signed binaries. **No** telemetry unless opt-in |
+| **1.1.0 now** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, optional one-file EXE, settings block (log level / harvest / lock timeout), persisted window geometry, per-game templates, Listening helper, script hooks, science dry-run + 2000-game confirm cap, fingerprint capture button, rate-limit dashboard. Social preview still open. |
+| **1.2** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack |
+| **1.3** | Quest types beyond video/play/stream if Discord adds them |
+| **2.0** | Multi-account identity files, signed binaries. **No** telemetry unless opt-in |
 
 Out of scope: v20 cookie decrypt, hosting tokens, bot-token mode, fake Staff badges.
 
@@ -349,7 +352,7 @@ python -m compileall -q ky_gameplayer run.py tests
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions: Python 3.11 / 3.12 / 3.13, no PySide6 install. Tests cover activity JSON, catalog load, science helpers, quest parse, profiles, detect matching.
+GitHub Actions: Python 3.11 / 3.12 / 3.13, no PySide6 install. Tests cover activity JSON, catalog load and sync, science helpers and dry-run, quest parse, profiles and game templates, detect matching, script hooks, rate-limit counters.
 
 ---
 
@@ -377,11 +380,11 @@ Quick hits:
 
 **Does extra pin show two games?** Official Discord: no. Vesktop/arRPC: maybe.
 
-**Is `games.json` complete?** It is Discord’s detectable dump at ship time. Refresh it any time without a git pull:
+**Is `games.json` complete?** It is Discord’s detectable dump at ship time. Refresh any time:
 
-```sh
-python -m ky_gameplayer.catalog_sync --check   # report CDN vs local counts
-python -m ky_gameplayer.catalog_sync           # back up to games.json.bak, then write
+```bash
+python -m ky_gameplayer.catalog_sync --check   # compare, no write
+python -m ky_gameplayer.catalog_sync            # download + atomic replace (`.bak` kept)
 ```
 
 **VirusTotal says 3 vendors flagged the exe. Is it malware?** We are not going to say “no” as a slogan. We will say what the report actually contains: three generic ML/heuristic labels, no family name, and a sandbox that did not drop files or open the network. If you do not want a packed binary, run `python run.py` from this tree.

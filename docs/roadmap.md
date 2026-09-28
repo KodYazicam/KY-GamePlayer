@@ -2,55 +2,38 @@
 
 Mirrored in the root README. Status is the contract for contributors.
 
-Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.0.0**.
+Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.1.0**.
 
-## Now (1.0.x) — ship and document
+## Now (1.1.0) — packaging and catalog hygiene (shipped)
 
-- [x] PySide6 desktop shell, dark Fusion, tray, single instance
-- [x] Membership lock on guild `1549516395010854912`
-- [x] Discord IPC SET_ACTIVITY with full activity editor
-- [x] 24k-game catalog + filters + favorites/playlist
-- [x] Process detect (Linux/Windows/macOS)
-- [x] HypeSquad, privacy, quests, custom status, clan
-- [x] Science farm (hours / played)
-- [x] Token harvest (LevelDB + DPAPI cookies v10/v11)
-- [x] Windows `kurulum.bat` / `windows.bat` + PyInstaller spec
-- [x] TR/EN i18n
-- [x] This documentation set + GitHub repo
-- [x] GitHub Actions compile + unittest on 3.11–3.13 (workflow committed)
-- [x] Social preview image (`assets/banner.svg`, generated with svgforge) for the GitHub repo
-- [x] `icon.ico` for the Windows EXE
-- [x] Windows onedir zip on GitHub Releases (`v*` tags)
-
-## Next (1.1) — packaging and catalog hygiene
-
-- [x] `python -m ky_gameplayer.catalog_sync` CLI so `games.json` can refresh without a git pull (`--check` reports only, `.bak` backup, refuses suspicious payloads)
-- [ ] `download_detectables` button in Help wrapping the sync CLI
-- [ ] Linux `.desktop` install script that does not rewrite the git copy
-- [ ] macOS `.app` via PyInstaller or Briefcase
-- [ ] Optional one-file Windows EXE (longer start, simpler copy)
-- [ ] Settings page: log level, harvest on/off, lock timeout
-- [ ] Persist window size/splitter in `profiles.json` `settings`
+- [x] `python -m ky_gameplayer.catalog_sync` CLI (`--check`, backup, refuses suspicious payloads, atomic write) so `games.json` can refresh without a git pull
+- [x] Social preview image (`assets/banner.svg`, generated with svgforge)
+- [x] Linux `.desktop` install script (`scripts/install-desktop.sh`) that does not rewrite the git copy
+- [x] macOS `.app` via PyInstaller (`packaging/macos/`)
+- [x] Optional one-file Windows EXE (`packaging/windows/KodYazar-onefile.spec`)
+- [x] Settings block on the Help tab: log level, harvest on/off, lock timeout
+- [x] Persist window size/splitter in `profiles.json` `settings`
 
 ## Next (1.2) — RPC quality
 
-- [ ] Asset browser from Discord application assets API when the id is a bot you own
+- [ ] `download_detectables` button in Help wrapping the sync CLI
+- [ ] Asset browser UI over the `DiscordRest.application_assets` call (REST part landed in 1.1.0)
 - [ ] Image upload helper (external URL only today)
-- [ ] Per-game default details/state templates
-- [ ] Spotify-style Listening helper (type 2) with album art URL
+- [x] Per-game default details/state templates (`game_templates` in `profiles.json`, identity tab)
+- [x] Spotify-style Listening helper (type 2) with album art URL (identity tab)
 - [ ] Better extra-slot UX when the host client cannot stack activities (detect official vs Vesktop)
 
-## Later (1.3) — quests and science
+## Later (1.3) — quests and science (shipped in 1.1.0)
 
 - [ ] Quest type coverage if Discord adds tasks beyond video/play/stream
-- [ ] Science dry-run (log payload, no POST)
-- [ ] Fingerprint capture UI: “copy from last official detect”
-- [ ] Rate-limit dashboard (429 counts)
-- [ ] Hard cap / confirm dialog before science source = all 24k games
+- [x] Science dry-run (checkbox: build events, log them, skip the POST)
+- [x] Fingerprint capture button (“copy from Discord’s own disk state”)
+- [x] Rate-limit dashboard (HTTP/429/retry counters on the Help tab)
+- [x] Hard cap + confirm dialog before science source = all 24k games (cap 2000, engine-level)
 
 ## Later (2.0) — product
 
-- [ ] Plugin or script hooks (load a Python file that returns `ActivityConfig`)
+- [x] Script hooks: load a Python file that returns `ActivityConfig` (`ky_gameplayer/hooks.py`, identity tab)
 - [ ] Multi-account profiles with separate `science_state` files
 - [ ] Wayland tray reliability pass
 - [ ] Signed Windows Authenticode / macOS notarization (needs a certificate)

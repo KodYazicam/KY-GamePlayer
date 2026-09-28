@@ -183,6 +183,14 @@ class DiscordRest:
     def connections(self) -> tuple[int, Any]:
         return self.request("GET", "/users/@me/connections")
 
+    def application_assets(self, application_id: str) -> tuple[int, Any]:
+        """List registered assets for an application you own.
+
+        Returns the raw payload: a list of ``{id, name, type}`` entries.
+        403 means the token's account does not own the application.
+        """
+        return self.request("GET", f"/applications/{str(application_id)}/assets")
+
     def set_custom_status(self, text: str, emoji_name: str | None = None) -> tuple[int, Any]:
         body: dict[str, Any] = {
             "custom_status": {

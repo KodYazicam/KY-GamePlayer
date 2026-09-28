@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from ky_gameplayer.activity import ActivityConfig
+from ky_gameplayer.activity import ActivityConfig, listening_config
 
 
 class ActivityConfigTests(unittest.TestCase):
@@ -71,6 +71,45 @@ class ActivityConfigTests(unittest.TestCase):
         assert playing is not None and streaming is not None
         self.assertNotIn("url", playing)
         self.assertEqual(streaming["url"], "https://twitch.tv/x")
+
+
+class ListeningHelperTests(unittest.TestCase):
+    def test_listening_config_shape(self) -> None:
+        cfg = listening_config(
+            "Nightcall",
+            "Kavinsky",
+            album="OutRun",
+            art_url="https://example.com/cover.png",
+            duration_s=180,
+            game_id="42",
+        )
+        self.assertEqual(cfg.type, 2)
+        self.assertEqual(cfg.name, "Nightcall")
+        self.assertEqual(cfg.details, "Kavinsky — OutRun")
+        self.assertEqual(cfg.large_image, "https://example.com/cover.png")
+        self.assertEqual(cfg.large_text, "OutRun")
+        self.assertEqual(cfg.application_id, "42")
+        self.assertTrue(cfg.use_elapsed)
+        self.assertTrue(cfg.use_end)
+        payload = cfg.build()
+        assert payload is not None
+        self.assertEqual(payload["type"], 2)
+        self.assertIn("end", payload["timestamps"])
+        self.assertIn("start", payload["timestamps"])
+
+    def test_listening_config_minimal_has_no_timestamps(self) -> None:
+        cfg = listening_config("Track")
+        payload = cfg.build()
+        assert payload is not None
+        self.assertEqual(payload["name"], "Track")
+        self.assertNotIn("details", payload)
+        self.assertNotIn("timestamps", payload)
+
+    def test_listening_config_empty_track(self) -> None:
+        cfg = listening_config("")
+        payload = cfg.build()
+        assert payload is not None
+        self.assertNotIn("name", payload)
 
 
 if __name__ == "__main__":

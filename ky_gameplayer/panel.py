@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDesktopServices, QFont, QPixmap
 from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QCompleter,
     QFrame,
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -175,6 +177,7 @@ class KodYazarPages(QWidget):
     status_apply = Signal(str)
     clan_apply = Signal(str)
     account_refresh = Signal()
+    settings_changed = Signal(str, object)
 
     def __init__(self, images: ImageCache, parent=None) -> None:
         super().__init__(parent)
@@ -445,6 +448,40 @@ class KodYazarPages(QWidget):
         self.help_meta = QLabel(t("help_id", id=REQUIRED_GUILD_ID))
         self.help_meta.setObjectName("muted")
         layout.addWidget(self.help_meta)
+
+        self.settings_head = QLabel(t("settings_head"))
+        self.settings_head.setObjectName("sectionTitle")
+        layout.addWidget(self.settings_head)
+        self.log_level_box = QComboBox()
+        for level in ("DEBUG", "INFO", "WARNING", "ERROR"):
+            self.log_level_box.addItem(level, level)
+        self.log_level_box.currentIndexChanged.connect(
+            lambda _idx: self.settings_changed.emit("log_level", self.log_level_box.currentData())
+        )
+        self.harvest_box = QCheckBox(t("settings_harvest"))
+        self.harvest_box.setChecked(True)
+        self.harvest_box.toggled.connect(
+            lambda on: self.settings_changed.emit("harvest_enabled", bool(on))
+        )
+        self.lock_timeout = QSpinBox()
+        self.lock_timeout.setRange(5, 120)
+        self.lock_timeout.setSuffix(" s")
+        self.lock_timeout.setValue(20)
+        self.lock_timeout.valueChanged.connect(
+            lambda value: self.settings_changed.emit("lock_timeout", int(value))
+        )
+        settings_grid = QGridLayout()
+        self._settings_grid_labels = [QLabel(t("settings_log_level")), QLabel(t("settings_lock_timeout"))]
+        settings_grid.addWidget(self._settings_grid_labels[0], 0, 0)
+        settings_grid.addWidget(self.log_level_box, 0, 1)
+        settings_grid.addWidget(self.harvest_box, 1, 0, 1, 2)
+        settings_grid.addWidget(self._settings_grid_labels[1], 2, 0)
+        settings_grid.addWidget(self.lock_timeout, 2, 1)
+        layout.addLayout(settings_grid)
+
+        self.rate_label = QLabel(t("rate_stats", requests=0, rate_limited=0, retries=0))
+        self.rate_label.setObjectName("muted")
+        layout.addWidget(self.rate_label)
         layout.addStretch(1)
         return box
 
@@ -641,6 +678,12 @@ class KodYazarPages(QWidget):
         self.help_body.setText(t("help_body", app=APP_TITLE, guild=GUILD_NAME, invite=INVITE_URL))
         self.help_invite.setText(t("help_join", invite=INVITE_URL))
         self.help_meta.setText(t("help_id", id=REQUIRED_GUILD_ID))
+        self.settings_head.setText(t("settings_head"))
+        self.harvest_box.setText(t("settings_harvest"))
+        if hasattr(self, "_settings_grid_labels"):
+            self._settings_grid_labels[0].setText(t("settings_log_level"))
+            self._settings_grid_labels[1].setText(t("settings_lock_timeout"))
+        self.rate_label.setText(t("rate_stats", requests=0, rate_limited=0, retries=0))
         if self._me is not None:
             self.set_account(self._me)
         if self._account_payload is not None:

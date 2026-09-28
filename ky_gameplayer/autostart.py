@@ -163,4 +163,5 @@ def install_desktop(run_py: Path) -> None:
     local = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "applications" / "kodyazar.desktop"
     local.parent.mkdir(parents=True, exist_ok=True)
     local.write_text(body, encoding="utf-8")
-    (run_py.parent / "KY-GamePlayer.desktop").write_text(body, encoding="utf-8")
+    # The repo-root KY-GamePlayer.desktop stays a tracked template; we never
+    # rewrite the git copy (roadmap 1.1).

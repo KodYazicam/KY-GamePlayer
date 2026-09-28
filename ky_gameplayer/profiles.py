@@ -36,6 +36,8 @@ class ProfileStore:
             self.data.update(payload)
             if not isinstance(self.data.get("profiles"), dict):
                 self.data["profiles"] = {}
+            if not isinstance(self.data.get("game_templates"), dict):
+                self.data["game_templates"] = {}
             for key in ("favorites", "recents", "excluded", "playlist", "played"):
                 if not isinstance(self.data.get(key), list):
                     self.data[key] = []
@@ -79,6 +81,25 @@ class ProfileStore:
     def delete(self, name: str) -> None:
         self.data.get("profiles", {}).pop(name, None)
         self.save()
+
+    def game_template(self, game_id: str) -> ActivityConfig | None:
+        raw = self.data.setdefault("game_templates", {}).get(game_id)
+        if not isinstance(raw, dict):
+            return None
+        return ActivityConfig.from_json(raw)
+
+    def put_game_template(self, game_id: str, config: ActivityConfig) -> None:
+        templates = self.data.setdefault("game_templates", {})
+        templates[game_id] = config.to_json()
+        self.save()
+
+    def delete_game_template(self, game_id: str) -> bool:
+        templates = self.data.setdefault("game_templates", {})
+        if game_id in templates:
+            templates.pop(game_id)
+            self.save()
+            return True
+        return False
 
     def _id_list(self, key: str) -> list[str]:
         values = self.data.setdefault(key, [])
@@ -172,6 +193,9 @@ class ProfileStore:
         incoming = payload.get("profiles")
         if isinstance(incoming, dict):
             self.data.setdefault("profiles", {}).update(incoming)
+        templates = payload.get("game_templates")
+        if isinstance(templates, dict):
+            self.data.setdefault("game_templates", {}).update(templates)
         for key in ("favorites", "recents", "excluded", "playlist"):
             extra = payload.get(key)
             if isinstance(extra, list):

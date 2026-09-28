@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import random
+import sys
 import time
 import uuid
 from dataclasses import asdict, dataclass
@@ -187,9 +188,10 @@ def download_detectables(dest: Path) -> str:
 
 
 class ScienceClient:
-    def __init__(self, state: ScienceState, session: ScienceSession) -> None:
+    def __init__(self, state: ScienceState, session: ScienceSession, *, dry_run: bool = False) -> None:
         self.state = state
         self.session = session
+        self.dry_run = dry_run
         self._seq = 0
 
     def _next_seq(self) -> int:
@@ -288,6 +290,10 @@ class ScienceClient:
 
     def post(self, events: Sequence[dict[str, Any]]) -> int:
         payload = {"token": self.state.analytics_token, "events": list(events)}
+        if self.dry_run:
+            preview = json.dumps({"events": len(events), "first": events[0] if events else None})[:400]
+            sys.stderr.write(f"[science dry-run] would POST {len(events)} events: {preview}\n")
+            return 204
         headers = {
             "accept": "*/*",
             "accept-language": local_locale(),
@@ -318,6 +324,9 @@ def chunked(items: Sequence[ScienceGame], size: int) -> Iterator[Sequence[Scienc
         yield items[start : start + size]
 
 
+HARD_CAP_GAMES = 2000
+
+
 def farm(
     client: ScienceClient,
     games: Sequence[ScienceGame],
@@ -329,8 +338,14 @@ def farm(
     extra_delay: tuple[float, float] = (0.5, 1.5),
     cancel: Callable[[], bool] | None = None,
     on_batch: Callable[[int, int, int], None] | None = None,
+    hard_cap: int = HARD_CAP_GAMES,
+    confirmed: bool = False,
 ) -> int:
     total = len(games)
+    if total > hard_cap and not confirmed:
+        raise ValueError(
+            f"refusing to farm {total} games (cap {hard_cap}); pass confirmed=True after asking the user"
+        )
     sent_ok = 0
     for request_no, chunk in enumerate(chunked(games, max(1, batch_size)), start=1):
         if cancel and cancel():

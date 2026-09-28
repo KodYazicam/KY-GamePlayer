@@ -9,6 +9,19 @@ import urllib.request
 from typing import Any
 
 
+_RATE_LIMIT_STATS = {"requests": 0, "rate_limited": 0, "retries": 0}
+
+
+def rate_limit_stats() -> dict[str, int]:
+    """Cumulative HTTP counters since process start (rate-limit dashboard)."""
+    return dict(_RATE_LIMIT_STATS)
+
+
+def reset_rate_limit_stats() -> None:
+    for key in _RATE_LIMIT_STATS:
+        _RATE_LIMIT_STATS[key] = 0
+
+
 def http_request(
     method: str,
     url: str,
@@ -24,6 +37,7 @@ def http_request(
     last_exc: Exception | None = None
     for attempt in range(max(1, retries)):
         req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
+        _RATE_LIMIT_STATS["requests"] += 1
         try:
             with urllib.request.urlopen(req, timeout=timeout) as response:
                 raw = response.read()
@@ -38,10 +52,14 @@ def http_request(
             raw = exc.read()
             hdrs = dict(exc.headers.items()) if exc.headers else {}
             if exc.code == 429 and attempt + 1 < retries:
+                _RATE_LIMIT_STATS["rate_limited"] += 1
+                _RATE_LIMIT_STATS["retries"] += 1
                 wait = _retry_after(hdrs, attempt)
                 time.sleep(wait)
                 last_exc = exc
                 continue
+            if exc.code == 429:
+                _RATE_LIMIT_STATS["rate_limited"] += 1
             try:
                 payload = json.loads(raw) if raw else {"message": str(exc)}
             except Exception:
