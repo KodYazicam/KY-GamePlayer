@@ -16,6 +16,8 @@ Resolved in `ky_gameplayer.paths`.
 | --- | --- | --- |
 | `config/profiles.json` | `ProfileStore` | Last game, named RPC profiles, favorites, recents, playlist, excluded, played ids, random weights, UI settings |
 | `config/science_state.json` | `ScienceState` / `secrets.save_mapping` | Token, cookie, fingerprint, analytics_token, fetched_at |
+| `config/games.json` | `catalog_sync` / `MainWindow` | Optional user-updated catalog. Takes precedence over the bundled copy when it loads; absent by default. |
+| `config/games.json.bak` | `catalog_sync` | Previous user catalog (or the bundled catalog after the first update). Used by **Restore**. |
 | `cache/logs/kodyazar-YYYYMMDD.log` | `__main__._setup_logging` | INFO logs, unhandled exceptions |
 | `cache/cdn/` | `ImageCache` | PNG/JPEG downloaded from Discord CDN (game icons, badges, quest art) |
 
@@ -66,13 +68,19 @@ Plain JSON on Linux/macOS. On Windows, bytes are `b"KY1\x00" + CryptProtectData(
 
 Export/import in the Games tab copies this object (not `science_state.json`).
 
-## Repo-root `games.json`
+## `games.json` (bundled and user catalog)
 
-Discord detectable catalog. Loaded by `GameCatalog.load`.
+Discord detectable catalog. `MainWindow` prefers `config_dir()/games.json` when it exists and falls back to the read-only bundled file (`app_root()/games.json`). Both are parsed by `GameCatalog.load`.
 
 - Count in this tree: **24 314** games
 - Size: **~12 703 012** bytes, one JSON array
-- Source of truth upstream: `https://cdn.discordapp.com/detectables/games.json` (`science.download_detectables`)
+- Source of truth upstream: `https://cdn.discordapp.com/detectables/games.json`
+
+### Opt-in refresh
+
+**Games → Kataloğu güncelle** (or `python -m ky_gameplayer.catalog_sync`) downloads the upstream file on explicit request, validates it, shows a diff preview and only then writes `config/games.json` atomically. The download is capped at 40 MB, IDs must be unique numeric snowflakes, and a catalog that loses more than half of its rows is refused. There is no startup fetch and no polling.
+
+`--check` compares counts without writing. `--restore` copies `games.json.bak` back. The GUI reloads the catalog, filters and process index in place; a restart is not required.
 
 Each object:
 

@@ -66,6 +66,12 @@ class LanguageMixin:
             self._tray_quit.setText(i18n("tray_quit"))
         self.games_title.setText(i18n("approved_games"))
         self.count_label.setText(i18n("games_count", n=len(self.catalog.games)))
+        self.btn_catalog_update.setText(i18n("catalog_update"))
+        self.btn_catalog_update.setToolTip(i18n("catalog_update_tip"))
+        self.btn_catalog_restore.setText(i18n("catalog_restore"))
+        if not self._catalog_busy:
+            self._refresh_catalog_actions()
+            self._update_catalog_status()
         self.search.setPlaceholderText(i18n("search_ph"))
         self._retitle_combo(
             self.theme_filter,
