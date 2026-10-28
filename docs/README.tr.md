@@ -24,6 +24,8 @@ PyPI’de yok. Repoyu klonla. Discord Stable / Canary / PTB / Vesktop / Vencord 
 
 Bu bir **yerel kullanıcı istemcisi**. Bu makinedeki açık Discord oturumunun token’ını okur; IPC ve API v9 ile Discord’a gider. KodYazicam sunucusuna kimlik göndermez. Resmi olmayan kullanıcı-token otomasyonu Discord kurallarını ihlal edebilir — risk sende. [`../SECURITY.md`](../SECURITY.md).
 
+Sürüm **1.2.0**: `MainWindow` `ky_gameplayer/ui/` modüllerine bölündü, engelleyen Discord çağrıları GUI iş parçacığından çıkarıldı, modern tema, Linux/macOS'ta keyring ve 3.14 + lint + offscreen Qt + Windows CI.
+
 İngilizce kök README ile aynı ürün. Ayrıntılı kontrol listesi: [`features.md`](features.md). Mimari: [`architecture.md`](architecture.md). Kurulum: [`install.md`](install.md). Yol haritası: [`roadmap.md`](roadmap.md).
 
 ---
@@ -43,7 +45,7 @@ Bu bir **yerel kullanıcı istemcisi**. Bu makinedeki açık Discord oturumunun 
 
 ---
 
-## Özellik yüzeyi (1.0.0)
+## Özellik yüzeyi (1.2.0)
 
 | Alan | Ne var |
 | --- | --- |

@@ -7,7 +7,7 @@ run.py
   QT_LOGGING_RULES
   ky_gameplayer.__main__.main
     logging → cache/logs
-    QApplication Fusion + dark palette
+    QApplication Fusion + ui.theme (palette + style sheet)
     instance.claim  → QLocalServer kodyazar-client-lock
     MainWindow(app_root)
       GameCatalog.load(games.json)
@@ -46,7 +46,35 @@ Tabs (order in code):
 6. Hesap
 7. Yardım
 
-`panel.Pages` is an alias of `KodYazarPages`. Games tab widgets live in `window.py` (`_build_left`, `_build_right`).
+`panel.Pages` is an alias of `KodYazarPages`. The games tab is assembled by `ui/layout.py` (`_build_left`, `_build_right`).
+
+### UI modules
+
+`MainWindow` is a composition root (`window.py`, <250 lines) that inherits mixins from `ky_gameplayer/ui/`:
+
+| Module | Responsibility |
+| --- | --- |
+| `common.py` | `ExtraSlot`, `_line`, `MAX_EXTRA_SLOTS` |
+| `lock.py` | lock page, token paste, membership enforcement |
+| `tray.py` | tray icon, close-to-tray, shutdown |
+| `language.py` | TR/EN string application |
+| `layout.py` | header, tab shell, games splitter, action bars |
+| `forms.py` | RPC editor groups, `collect()` / `apply_config()` |
+| `games.py` | list model wiring, filters, favourites, random pool |
+| `presence.py` | IPC connect/frames, extra slots, assets, detection |
+| `profiles.py` | profile CRUD, settings, import/export |
+| `science_ui.py` | science farm, hooks, credential widgets |
+| `account.py` | account REST, quests, badges/privacy actions |
+| `theme.py` | design tokens, palette, style sheet |
+| `tasks.py` | `TaskRunner` (blocking work → GUI thread) |
+
+### Threading model
+
+`TaskRunner` runs a callable on a daemon thread and emits `done` / `failed`; the signals are connected with `Qt.QueuedConnection`, so callbacks always execute on the GUI thread. Callback exceptions are logged, never propagated into the event loop. `cancel_all()` drops pending callbacks on shutdown.
+
+Used by `_refresh_account`, `_apply_status`, `_apply_clan`, `_pull_science_from_client`. The science client-name lookup (`list_running_clients`, ~75 ms process scan) is cached for 5 s.
+
+Other workers are unchanged: membership uses a daemon thread + `membership_ready`, science/quests use `QThread` workers, IPC has its own reader thread.
 
 ## Membership lock
 

@@ -107,9 +107,23 @@ Do not pretty-print this file in git; keep it compact.
 
 | File | Mode / ACL |
 | --- | --- |
-| `science_state.json` | `0600` + DPAPI on Windows |
+| `science_state.json` | `0600`; Windows DPAPI (`KY1\0`); Linux/macOS secrets in the OS keyring |
 | `profiles.json` | `0600` via `atomic_write` |
 | logs | created `0600` best-effort |
 | CDN cache | ordinary user files |
+
+### Secret storage
+
+`token`, `cookie`, `analytics_token` (and the same class of keys) are written to the
+OS keyring on Linux and macOS — Secret Service or Keychain, service
+`kodyazar-client`, account `science_state`. The JSON file keeps non-sensitive
+values (`fingerprint`, `fetched_at`).
+
+- Existing plain-text files are migrated on first read.
+- If no backend answers (headless box, no DBus), the app falls back to the
+  previous `0600` file and logs a warning.
+- `KODYAZAR_NO_KEYRING=1` forces the file path.
+- Windows keeps DPAPI and never touches the keyring.
+- Explicit paths (`ScienceState.load(path)` / portable import) bypass the keyring.
 
 Backup: copy `profiles.json` if you care about presets. **Do not** put `science_state.json` in cloud sync folders that other people can read.
