@@ -29,10 +29,18 @@ class Game:
     _search_blob: str = field(init=False, repr=False, default="")
     _distributors: tuple[str, ...] = field(init=False, repr=False, default=())
     _os_list: tuple[str, ...] = field(init=False, repr=False, default=())
+    _name_fold: str = field(init=False, repr=False, default="")
+    _name_words: tuple[str, ...] = field(init=False, repr=False, default=())
+    _initials: str = field(init=False, repr=False, default="")
 
     def __post_init__(self) -> None:
         # Built once per game: filtering runs over 24k rows on every keystroke.
-        parts = [self.name, self.id, *self.aliases, *self.themes]
+        self._name_fold = self.name.casefold()
+        self._name_words = tuple(word for word in self._name_fold.split() if word)
+        # "gta" should find "Grand Theft Auto V" even though the letters are
+        # not contiguous in the name.
+        self._initials = "".join(word[0] for word in self._name_words if word[:1].isalnum())
+        parts = [self.name, self.id, *self.aliases, *self.themes, self._initials]
         for sku in self.third_party_skus:
             dist = sku.get("distributor")
             sid = sku.get("id")
@@ -150,19 +158,33 @@ class GameCatalog:
                 continue
             if os_name and os_name not in game.os_list():
                 continue
-            if has_icon is True and not game.icon_hash:
+            if has_icon is not None and bool(game.icon_hash) is not has_icon:
                 continue
-            if has_icon is False and game.icon_hash:
+            if has_cover is not None and bool(game.cover_image_hash) is not has_cover:
                 continue
-            if has_cover is True and not game.cover_image_hash:
-                continue
-            if has_cover is False and game.cover_image_hash:
-                continue
-            if overlay is True and not game.overlay:
-                continue
-            if overlay is False and game.overlay:
+            if overlay is not None and bool(game.overlay) is not overlay:
                 continue
             out.append(game)
-            if limit is not None and len(out) >= limit:
-                break
+        if tokens:
+            # Relevance, not just the alphabetical catalog order: an exact or
+            # prefix match on the name (or its initials) beats a SKU hit.
+            out.sort(key=lambda game: (_match_score(game, needle), game._name_fold))
+        if limit is not None:
+            return out[:limit]
         return out
+
+
+def _match_score(game: Game, needle: str) -> int:
+    """Lower is better. ``needle`` is already folded and space-normalised."""
+    name = game._name_fold
+    if name == needle:
+        return 0
+    if name.startswith(needle):
+        return 1
+    if game._initials.startswith(needle.replace(" ", "")):
+        return 2
+    if any(word.startswith(needle) for word in game._name_words):
+        return 3
+    if needle in name:
+        return 4
+    return 5

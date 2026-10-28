@@ -70,6 +70,33 @@ def _load() -> None:
         "games_count": ("{n} oyun", "{n} games"),
         "games_count_filter": ("{shown} / {n} oyun", "{shown} / {n} games"),
         "search_ph": ("İsim, ID, alias, exe, Steam ID…", "Name, ID, alias, exe, Steam ID…"),
+        "search_empty": (
+            "Eşleşen oyun yok. Arama metnini veya filtreleri temizleyin.",
+            "No matching games. Clear the search text or filters.",
+        ),
+        "shortcuts_title": ("Klavye kısayolları", "Keyboard shortcuts"),
+        "shortcuts_text": (
+            "Ctrl+F  Arama alanına git\n"
+            "Esc  Aramayı temizle\n"
+            "Ctrl+Shift+F  Favori\n"
+            "Ctrl+R  Rastgele oyun\n"
+            "Ctrl+U  Durumu güncelle\n"
+            "Ctrl+L  Durumu temizle\n"
+            "Ctrl+P  PID'e sabitle\n"
+            "Ctrl+D  Çalışan oyunları tara\n"
+            "Ctrl+Shift+S  Mağaza düğmesi\n"
+            "F1  Bu pencere",
+            "Ctrl+F  Focus search\n"
+            "Esc  Clear search\n"
+            "Ctrl+Shift+F  Favourite\n"
+            "Ctrl+R  Random game\n"
+            "Ctrl+U  Update presence\n"
+            "Ctrl+L  Clear presence\n"
+            "Ctrl+P  Pin to PID\n"
+            "Ctrl+D  Scan running games\n"
+            "Ctrl+Shift+S  Store button\n"
+            "F1  This window",
+        ),
         "filter_theme_all": ("Tüm temalar", "All themes"),
         "filter_store_all": ("Tüm mağazalar", "All stores"),
         "filter_os_all": ("Tüm OS", "All OS"),

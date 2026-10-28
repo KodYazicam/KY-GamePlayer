@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QAbstractListModel, QModelIndex, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPixmap, QPainterPath
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem
 
 from .games import Game
@@ -17,6 +17,7 @@ class GameListModel(QAbstractListModel):
         super().__init__()
         self._games: list[Game] = []
         self._icons: dict[str, QPixmap] = {}
+        self._rows: dict[str, int] = {}
 
     def rowCount(self, parent: QModelIndex = _NO_PARENT) -> int:
         if parent.isValid():
@@ -52,21 +53,19 @@ class GameListModel(QAbstractListModel):
     def reset_games(self, games: list[Game]) -> None:
         self.beginResetModel()
         self._games = games
+        self._rows = {game.id: row for row, game in enumerate(games)}
         self.endResetModel()
 
     def set_icon(self, game_id: str, pixmap: QPixmap) -> None:
         self._icons[game_id] = pixmap
-        for row, game in enumerate(self._games):
-            if game.id == game_id:
-                idx = self.index(row)
-                self.dataChanged.emit(idx, idx, [Qt.ItemDataRole.DecorationRole])
-                break
+        row = self._rows.get(game_id)
+        if row is None:
+            return
+        idx = self.index(row)
+        self.dataChanged.emit(idx, idx, [Qt.ItemDataRole.DecorationRole])
 
     def index_for_id(self, game_id: str) -> int:
-        for row, game in enumerate(self._games):
-            if game.id == game_id:
-                return row
-        return -1
+        return self._rows.get(game_id, -1)
 
 
 class GameDelegate(QStyledItemDelegate):
@@ -127,12 +126,16 @@ class GameDelegate(QStyledItemDelegate):
         painter.setPen(QColor("#f2f3f5") if selected else QColor("#dbdee1"))
         painter.setFont(name_font)
         text_x = icon_rect.right() + 10
-        painter.drawText(text_x, rect.top() + 18, game.name)
+        text_width = max(20, rect.right() - text_x - 6)
+        metrics = QFontMetrics(name_font)
+        name = metrics.elidedText(game.name, Qt.TextElideMode.ElideRight, text_width)
+        painter.drawText(text_x, rect.top() + 18, name)
 
         painter.setPen(QColor("#949ba4"))
         painter.setFont(meta_font)
         meta = game.id
         if game.themes:
             meta = f"{game.id}  ·  {game.themes[0]}"
+        meta = QFontMetrics(meta_font).elidedText(meta, Qt.TextElideMode.ElideRight, text_width)
         painter.drawText(text_x, rect.top() + 36, meta)
         painter.restore()

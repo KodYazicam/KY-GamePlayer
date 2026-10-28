@@ -48,6 +48,41 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(g.id and g.name for g in self.catalog.games))
 
 
+class CatalogRankingTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.catalog = GameCatalog(
+            [
+                Game(id="1", name="Encounter Point"),
+                Game(id="2", name="Counter-Strike 2"),
+                Game(id="3", name="Counter"),
+                Game(id="4", name="Point Counter"),
+                Game(id="5", name="Grand Theft Auto V"),
+                Game(id="6", name="Guitar Tuner App"),
+            ]
+        )
+
+    def _names(self, query: str) -> list[str]:
+        return [game.name for game in self.catalog.filter(query=query)]
+
+    def test_exact_then_prefix_then_word_then_substring(self) -> None:
+        self.assertEqual(
+            self._names("counter"),
+            ["Counter", "Counter-Strike 2", "Point Counter", "Encounter Point"],
+        )
+
+    def test_acronym_matches_name_initials(self) -> None:
+        names = self._names("gta")
+        self.assertEqual(names[:2], ["Grand Theft Auto V", "Guitar Tuner App"])
+
+    def test_limit_applies_after_ranking(self) -> None:
+        self.assertEqual([g.name for g in self.catalog.filter(query="counter", limit=1)], ["Counter"])
+
+    def test_filters_still_apply_to_ranked_results(self) -> None:
+        hits = self.catalog.filter(query="counter", overlay=False)
+        self.assertEqual(len(hits), 4)
+
+
 class StoreLinkTests(unittest.TestCase):
     def test_steam(self) -> None:
         self.assertEqual(
