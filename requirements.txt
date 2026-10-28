@@ -1,2 +1,3 @@
 PySide6>=6.6,<7
 cryptography>=42
+keyring>=24; sys_platform != "win32"
