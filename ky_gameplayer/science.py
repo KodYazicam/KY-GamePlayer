@@ -86,8 +86,6 @@ class ScienceSession:
 
 
 def _local_props() -> dict[str, Any]:
-    from .httputil import local_locale, local_timezone
-
     return {
         "os": "Windows",
         "browser": "Discord Client",
@@ -164,8 +162,8 @@ def science_game_from(game: Any) -> ScienceGame:
     if isinstance(game, ScienceGame):
         return game
     return ScienceGame(
-        id=str(getattr(game, "id")),
-        name=str(getattr(game, "name")),
+        id=str(game.id),
+        name=str(game.name),
         exe=win_exe_from_entry(game),
     )
 
