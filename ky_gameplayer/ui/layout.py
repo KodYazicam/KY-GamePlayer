@@ -92,6 +92,7 @@ class LayoutMixin:
         self.pages.clan_apply.connect(self._apply_clan)
         self.pages.account_refresh.connect(self._refresh_account)
         self.pages.settings_changed.connect(self._on_setting_changed)
+        self.pages.diagnostics_copy.connect(self._copy_diagnostics)
         self.quest_engine.quests.connect(self.pages.set_quests)
         self.quest_engine.progress.connect(self.pages.update_quest)
         self.quest_engine.me.connect(self.pages.set_account)

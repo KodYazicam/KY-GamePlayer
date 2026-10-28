@@ -54,9 +54,9 @@ class ProfilesMixin:
         settings[key] = value
         self.store.save()
         if key == "log_level":
-            import logging
+            from ..logging_setup import apply_level
 
-            logging.getLogger().setLevel(str(value))
+            apply_level(str(value))
         elif key == "lock_timeout":
             self._lock_timeout = max(5, int(value))
         elif key == "harvest_enabled":

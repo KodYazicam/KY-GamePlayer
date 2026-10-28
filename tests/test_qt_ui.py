@@ -145,6 +145,28 @@ class WindowSmokeTests(unittest.TestCase):
                 finally:
                     win.tasks.cancel_all()
                     theme.apply_theme(self.app, "dark")
-                win.hide()
-                win.deleteLater()
-                self.app.processEvents()
+
+    def test_diagnostics_copy_is_redacted(self) -> None:
+        from ky_gameplayer import window as window_module
+        from ky_gameplayer.paths import app_root
+
+        token = "A" * 24 + "." + "B" * 6 + "." + "C" * 27
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with (
+                mock.patch.object(window_module, "_config_dir", return_value=base / "cfg"),
+                mock.patch.object(window_module, "_cache_dir", return_value=base / "cache"),
+            ):
+                win = window_module.MainWindow(app_root())
+                try:
+                    win._log(text=f"token={token}")
+                    win._copy_diagnostics()
+                    report = self.app.clipboard().text()
+                finally:
+                    win.tasks.cancel_all()
+                    win.hide()
+                    win.deleteLater()
+                    self.app.processEvents()
+        self.assertIn("diagnostics", report)
+        self.assertIn("version:", report)
+        self.assertNotIn(token, report)

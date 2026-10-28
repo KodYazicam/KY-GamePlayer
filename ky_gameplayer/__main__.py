@@ -4,7 +4,6 @@ import logging
 import os
 import signal
 import sys
-from datetime import datetime
 
 os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.window=false;qt.qpa.fonts=false")
 
@@ -14,21 +13,14 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from .brand import APP_NAME, APP_TITLE
 from .instance import claim, wire
-from .paths import app_root, log_dir
+from .logging_setup import setup_logging
+from .paths import app_root
 from .ui.theme import apply_theme
 from .window import MainWindow
 
 
 def _setup_logging() -> None:
-    log_path = log_dir() / f"kodyazar-{datetime.now():%Y%m%d}.log"
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-        handlers=[
-            logging.FileHandler(log_path, encoding="utf-8"),
-            logging.StreamHandler(sys.stderr),
-        ],
-    )
+    setup_logging()
 
     def _hook(exc_type, exc, tb) -> None:
         if issubclass(exc_type, KeyboardInterrupt):

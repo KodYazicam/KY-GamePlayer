@@ -31,6 +31,7 @@ from .ui.lock import LockMixin
 from .ui.tray import TrayMixin
 from .ui.language import LanguageMixin
 from .ui.account import AccountMixin
+from .ui.diagnostics import DiagnosticsMixin
 from .ui.layout import LayoutMixin
 from .ui.forms import FormsMixin
 from .ui.games import GamesMixin
@@ -41,7 +42,7 @@ from .ui.tasks import TaskRunner
 from .ui.theme import apply_theme
 
 
-class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, LayoutMixin, FormsMixin, GamesMixin, PresenceMixin, ProfilesMixin, ScienceMixin, QWidget):
+class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsMixin, LayoutMixin, FormsMixin, GamesMixin, PresenceMixin, ProfilesMixin, ScienceMixin, QWidget):
     membership_ready = Signal(object, object)
 
     def __init__(self, app_root: Path) -> None:
