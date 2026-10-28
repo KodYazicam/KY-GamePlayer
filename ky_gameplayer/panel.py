@@ -25,6 +25,7 @@ from .brand import APP_TITLE, GUILD_NAME, INVITE_URL, REQUIRED_GUILD_ID
 from .discord_rest import HOUSES, QuestTask, house_from_flags
 from .i18n import t
 from .images import ImageCache
+from .paths import log_dir
 
 
 def _scroll(inner: QWidget) -> QScrollArea:
@@ -178,6 +179,7 @@ class KodYazarPages(QWidget):
     clan_apply = Signal(str)
     account_refresh = Signal()
     settings_changed = Signal(str, object)
+    diagnostics_copy = Signal()
 
     def __init__(self, images: ImageCache, parent=None) -> None:
         super().__init__(parent)
@@ -498,8 +500,22 @@ class KodYazarPages(QWidget):
         self.rate_label = QLabel(t("rate_stats", requests=0, rate_limited=0, retries=0))
         self.rate_label.setObjectName("muted")
         layout.addWidget(self.rate_label)
+
+        self.diag_btn = QPushButton(t("diag_copy"))
+        self.diag_btn.setProperty("variant", "ghost")
+        self.diag_btn.clicked.connect(self.diagnostics_copy.emit)
+        self.log_btn = QPushButton(t("diag_open_logs"))
+        self.log_btn.setProperty("variant", "ghost")
+        self.log_btn.clicked.connect(self._open_logs)
+        layout.addWidget(self.diag_btn)
+        layout.addWidget(self.log_btn)
         layout.addStretch(1)
         return box
+
+    def _open_logs(self) -> None:
+        target = log_dir()
+        target.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(target)))
 
     def _pick_house(self, house_id: int) -> None:
         self._house = house_id
@@ -706,6 +722,8 @@ class KodYazarPages(QWidget):
                 self.theme_box.setItemText(index, t(key))
             self.theme_box.blockSignals(False)
         self.rate_label.setText(t("rate_stats", requests=0, rate_limited=0, retries=0))
+        self.diag_btn.setText(t("diag_copy"))
+        self.log_btn.setText(t("diag_open_logs"))
         if self._me is not None:
             self.set_account(self._me)
         if self._account_payload is not None:
