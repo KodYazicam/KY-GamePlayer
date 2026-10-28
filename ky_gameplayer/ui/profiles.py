@@ -61,6 +61,8 @@ class ProfilesMixin:
             self._lock_timeout = max(5, int(value))
         elif key == "harvest_enabled":
             self._harvest_enabled = bool(value)
+        elif key == "theme_mode":
+            self._apply_style()
         self._log(key="log_setting", setting=key, value=str(value))
 
     def _restore_extra_settings(self) -> None:
@@ -132,6 +134,12 @@ class ProfilesMixin:
             self.pages.lock_timeout.blockSignals(True)
             self.pages.lock_timeout.setValue(max(5, int(settings.get("lock_timeout") or 20)))
             self.pages.lock_timeout.blockSignals(False)
+        if hasattr(self.pages, "theme_box"):
+            index = self.pages.theme_box.findData(str(settings.get("theme_mode") or "dark"))
+            if index >= 0:
+                self.pages.theme_box.blockSignals(True)
+                self.pages.theme_box.setCurrentIndex(index)
+                self.pages.theme_box.blockSignals(False)
 
     def _save_random_settings(self, *_args) -> None:
         settings = self.store.settings()

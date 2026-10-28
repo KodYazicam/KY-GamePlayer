@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtWidgets import (
+    QApplication,
     QSystemTrayIcon,
     QWidget,
 )
@@ -116,6 +117,8 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, LayoutMixin,
         self.ipc.closed.connect(self._on_ipc_closed, Qt.ConnectionType.QueuedConnection)
         self.ipc.frame.connect(self._on_frame, Qt.ConnectionType.QueuedConnection)
         self.ipc.status.connect(self._set_socket_status, Qt.ConnectionType.QueuedConnection)
+        self._style_hints = QGuiApplication.styleHints()
+        self._style_hints.colorSchemeChanged.connect(self._on_system_scheme)
         self.science.progress.connect(self._on_science_progress, Qt.ConnectionType.QueuedConnection)
         self.science.finished.connect(self._on_science_finished, Qt.ConnectionType.QueuedConnection)
         self.science.failed.connect(self._on_science_failed, Qt.ConnectionType.QueuedConnection)
@@ -167,4 +170,15 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, LayoutMixin,
         QTimer.singleShot(50, self._enforce_membership)
 
     def _apply_style(self) -> None:
-        apply_theme(self)
+        mode = str(self.store.settings().get("theme_mode") or "dark")
+        app = QApplication.instance()
+        apply_theme(app if app is not None else self, mode=mode)
+        if hasattr(self, "list_view"):
+            self.list_view.viewport().update()
+        if hasattr(self, "preview"):
+            self.preview.update()
+
+    def _on_system_scheme(self, *_args) -> None:
+        mode = str(self.store.settings().get("theme_mode") or "dark")
+        if mode == "system":
+            self._apply_style()

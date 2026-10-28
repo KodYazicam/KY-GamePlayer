@@ -124,6 +124,27 @@ class WindowSmokeTests(unittest.TestCase):
                 self.assertIsNotNone(win.pages)
                 win.tasks.cancel_all()
                 self.assertEqual(win.tasks.pending, 0)
+
+    def test_theme_switch_persists(self) -> None:
+        from ky_gameplayer import window as window_module
+        from ky_gameplayer.paths import app_root
+        from ky_gameplayer.ui import theme
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with (
+                mock.patch.object(window_module, "_config_dir", return_value=base / "cfg"),
+                mock.patch.object(window_module, "_cache_dir", return_value=base / "cache"),
+            ):
+                win = window_module.MainWindow(app_root())
+                try:
+                    win._on_setting_changed("theme_mode", "light")
+                    self.assertEqual(win.store.settings()["theme_mode"], "light")
+                    self.assertEqual(theme.mode(), "light")
+                    self.assertIn(theme.LIGHT.BG, self.app.styleSheet())
+                finally:
+                    win.tasks.cancel_all()
+                    theme.apply_theme(self.app, "dark")
                 win.hide()
                 win.deleteLater()
                 self.app.processEvents()
