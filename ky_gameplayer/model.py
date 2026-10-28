@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem
 
 from .games import Game
 
+_NO_PARENT = QModelIndex()
+
 
 class GameListModel(QAbstractListModel):
     GameRole = Qt.ItemDataRole.UserRole
@@ -16,7 +18,7 @@ class GameListModel(QAbstractListModel):
         self._games: list[Game] = []
         self._icons: dict[str, QPixmap] = {}
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, parent: QModelIndex = _NO_PARENT) -> int:
         if parent.isValid():
             return 0
         return len(self._games)
