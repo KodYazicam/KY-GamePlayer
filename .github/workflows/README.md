@@ -3,7 +3,7 @@
 | File | Trigger | What |
 | --- | --- | --- |
 | `ci.yml` | push/PR to `main` | `compileall` + `unittest` on Python 3.11–3.14, `ruff`, offscreen Qt coverage with a 60 % gate, Windows smoke job. No external network, Discord client or real credentials. |
-| `release.yml` | tag `v*` | Native Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch and generic Linux builds; one `publish` job creates the release with per-file SHA-256 and `HASHES.txt`. |
+| `release.yml` | tag `v*`, manual dispatch | Native Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch and generic Linux builds; one `publish` job creates the release with per-file SHA-256 and `HASHES.txt`. A manual dispatch on `main` builds and uploads artifacts but skips `publish`; use it to validate runners before tagging. |
 
 Release jobs need `contents: write` (the default `GITHUB_TOKEN` is enough).
 Notes body: [`docs/release-notes.md`](../../docs/release-notes.md).
