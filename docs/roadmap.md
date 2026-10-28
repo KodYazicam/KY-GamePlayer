@@ -27,7 +27,9 @@ Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.2.0**.
 
 ## Next — 1.3 (RPC quality)
 
-- [ ] `download_detectables` button in Help wrapping the sync CLI
+- [x] Opt-in official `games.json` update with preview, validation and rollback (Games tab + CLI)
+- [x] HTTP retries for idempotent 5xx/429 with capped backoff, `Retry-After` seconds/date and POST opt-in
+- [x] Coverage job in CI with a 60 % gate and `coverage.xml` artifact
 - [ ] Asset browser UI over the `DiscordRest.application_assets` call (REST part landed in 1.1.0)
 - [ ] Image upload helper (external URL only today)
 - [ ] Better extra-slot UX when the host client cannot stack activities (detect official vs Vesktop)
@@ -73,3 +75,36 @@ python -m unittest discover -s tests
 ruff check .
 KODYAZAR_UI_TESTS=1 QT_QPA_PLATFORM=offscreen python -m unittest tests.test_qt_ui
 ```
+
+## Coverage and a pip-less local run
+
+The Qt-free suite runs straight from a checkout; no `pip install -e .` is
+required:
+
+```bash
+python -m unittest discover -s tests
+```
+
+The UI tests need PySide6 and an offscreen platform:
+
+```bash
+KODYAZAR_UI_TESTS=1 QT_QPA_PLATFORM=offscreen \
+  python -m unittest tests.test_ipc tests.test_quest_science tests.test_theme tests.test_qt_ui
+```
+
+If the `coverage` module is already available, the same checkout can be measured
+without installing the project:
+
+```bash
+KODYAZAR_UI_TESTS=1 QT_QPA_PLATFORM=offscreen \
+  python -m coverage run -m unittest discover -s tests
+python -m coverage report --fail-under=60
+python -m coverage xml
+```
+
+CI has a dedicated Linux `coverage` job with the same commands and a **60 %**
+line-coverage gate; `coverage.xml` is uploaded as an artifact. The Qt-free
+matrix still runs on Python 3.11–3.14. HTTP retry tests use a local
+`ThreadingHTTPServer` and never contact Discord.
+
+Tests must not require network access, a Discord client, or a real token.

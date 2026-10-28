@@ -128,7 +128,7 @@ Used by:
 | Account tab | settings, entitlements, custom status, clan / primary-guild |
 | ScienceEngine | `/users/@me?with_analytics_token=true`, `POST /science` |
 
-429 retries with `Retry-After` (capped). Transient errors retry 3 times with jitter.
+`http_request` retries idempotent methods on 429 and transient 5xx (500/502/503/504) with capped exponential backoff + jitter, honouring `Retry-After` in seconds or HTTP-date form. POST/PATCH retry 429 automatically but only retry 5xx/transport failures when the caller sets `retry_non_idempotent=True`; this avoids duplicating a write that the server already applied. `retry_statuses` narrows or widens the status set.
 
 ## Science farm
 
