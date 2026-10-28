@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import base64
 import sqlite3
+import sys
 import tempfile
 import unittest
+from types import ModuleType
 from pathlib import Path
 from unittest import mock
 
@@ -287,13 +289,13 @@ class ProcessTests(unittest.TestCase):
     def test_clients_from_processes_and_sorting(self) -> None:
         from types import SimpleNamespace
 
-        from ky_gameplayer import ipc as ipc_mod
-
+        fake_ipc = ModuleType("ky_gameplayer.ipc")
+        fake_ipc.find_discord_ipc = lambda: None  # type: ignore[attr-defined]
         process = SimpleNamespace(pid=7, name="Discord", cmdline="discord --flag", exe="/usr/bin/discord")
         with (
+            mock.patch.dict(sys.modules, {"ky_gameplayer.ipc": fake_ipc}),
             mock.patch.object(client_auth, "list_processes", return_value=[process]),
             mock.patch.object(client_auth, "_pid_has_ipc", return_value=False),
-            mock.patch.object(ipc_mod, "find_discord_ipc", return_value=None),
         ):
             clients = client_auth._clients_from_processes()
         self.assertEqual(len(clients), 1)
