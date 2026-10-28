@@ -30,7 +30,7 @@ PyPI’de yok. Repoyu klonla. Discord Stable / Canary / PTB / Vesktop / Vencord 
 
 Bu bir **yerel kullanıcı istemcisi**. Bu makinedeki açık Discord oturumunun token’ını okur; IPC ve API v9 ile Discord’a gider. KodYazicam sunucusuna kimlik göndermez. Resmi olmayan kullanıcı-token otomasyonu Discord kurallarını ihlal edebilir — risk sende. [`../SECURITY.md`](../SECURITY.md).
 
-Sürüm **1.3.0**: IPC bağlantısı, quest/science işleri ve taramalar GUI iş parçacığından çıkarıldı; sıralı arama, kompakt katalog ve beş alt sekme; koyu/açık/sistem teması; isteğe bağlı `games.json` güncellemesi; 429 + geçici 5xx yeniden denemeleri; dönen, redakte edilen günlük ve tanılama raporu; %60 kapsam eşiği.
+Sürüm **1.3.1**: 1.3.0’ın tüm özellikleri + Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch ve genel Linux için ayrı yayın paketleri; her dosya için SHA-256 ve tek `HASHES.txt`.
 
 İngilizce kök README ile aynı ürün. Ayrıntılı kontrol listesi: [`features.md`](features.md). Mimari: [`architecture.md`](architecture.md). Kurulum: [`install.md`](install.md). Yol haritası: [`roadmap.md`](roadmap.md).
 
@@ -51,7 +51,7 @@ Sürüm **1.3.0**: IPC bağlantısı, quest/science işleri ve taramalar GUI iş
 
 ---
 
-## Özellik yüzeyi (1.3.0)
+## Özellik yüzeyi (1.3.1)
 
 | Alan | Ne var |
 | --- | --- |
@@ -72,7 +72,7 @@ Sürüm **1.3.0**: IPC bağlantısı, quest/science işleri ve taramalar GUI iş
 | Gizlilik | Özel / kısıtlı / herkese açık |
 | Hesap | Özel durum, clan, entitlement sayısı |
 | Günlük | Dönen, redakte edilen `kodyazar.log` (2 MB × 3); tanılama kopyala |
-| Paket | `kurulum.bat` / `windows.bat`; PyInstaller |
+| Paket | Windows zip; macOS arm64/Intel `.app`; Debian/Ubuntu `.deb`; Fedora/RHEL `.rpm`; Arch `.pkg.tar.zst`; genel Linux tarball; SHA-256 + `HASHES.txt`; `kurulum.bat` / `windows.bat` |
 
 Her kontrol: [`features.md`](features.md).
 
@@ -99,13 +99,26 @@ python3 -m pip install -r requirements.txt
 python3 run.py
 ```
 
+Yayın paketleri tüm masaüstlerini kapsar:
+
+| Platform | İndirilecek dosya |
+| --- | --- |
+| Windows x64 | `KodYazar-Client-vX.Y.Z-windows-x64.zip` |
+| macOS Apple Silicon / Intel | `…-macos-arm64.zip` / `…-macos-x64.zip` |
+| Debian / Ubuntu x64 | `…-linux-x64.deb` |
+| Fedora / RHEL x64 | `…-linux-x64.rpm` |
+| Arch / Manjaro / EndeavourOS x64 | `…-arch-x64.pkg.tar.zst` |
+| Diğer Linux x64 | `…-linux-x64.tar.gz` |
+
+[Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) sayfasından al. Her dosyanın `.sha256`’sı ve release’te tek `HASHES.txt` var.
+
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → klasörün **hepsini** aç → `KodYazar\KodYazar.exe` (`_internal` yanında kalsın). SmartScreen uyarabilir; aşağıya bak.
+- **Release zip:** klasörün **hepsini** aç → `KodYazar\KodYazar.exe` (`_internal` yanında kalsın). SmartScreen uyarabilir; aşağıya bak.
 - **Kaynak:** bir kez `kurulum.bat`, sonra `windows.bat`.
 - **Yerel EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
-macOS: aynı pip + `run.py`.
+Linux paketleri `/opt/kodyazar` altına kurulur; `/usr/bin/kodyazar`, masaüstü girdisi ve simge ekler. macOS zip’i imzasız `.app` içerir ve macOS 14+ ister; ilk açılışta sağ tık → Aç. Ayrıntılı komutlar: [`install.md`](install.md#2-release-packages).
 
 İlk açılış: Discord açık → sunucuya katıl → bu program → kilit token’ı okur → üyelik doğrulanınca sekmeler.
 
@@ -245,6 +258,7 @@ Tam liste: [`roadmap.md`](roadmap.md).
 | --- | --- |
 | **1.0.x** | Dokümantasyon, CI, GitHub, `icon.ico`, Windows release zip. Sosyal önizleme açık. |
 | **1.1** | Katalog senkron CLI, Linux desktop’u git kopyasını ezmeden kurmak, macOS `.app`, pencere geometrisi |
+| **1.3.1** | Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch ve genel Linux yayın paketleri; SHA-256 |
 | **1.2** | `ui/` modülleri, async görevler, keyring, modern tema |
 | **1.3 şimdi** | Async IPC/quest/science, sıralı arama, açık/koyu/sistem tema, isteğe bağlı katalog güncellemesi, HTTP retry, redakte günlük + tanılama, %60 kapsam |
 | **1.4** | Asset tarayıcısı, görsel yükleme yardımcısı, resmi Discord’da ek slot uyarısı |

@@ -7,7 +7,7 @@ Discord payloads: [`../docs/discord.md`](../docs/discord.md).
 
 This folder is the **Python package**. Entry: `__main__.main` (also `python run.py` from the repo root). Console script: `kodyazar` (`pyproject.toml`).
 
-Version: `__init__.__version__` = `1.3.0`.
+Version: `__init__.__version__` = `1.3.1`.
 
 ## Boot
 

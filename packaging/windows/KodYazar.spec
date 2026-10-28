@@ -5,6 +5,7 @@ root = Path.cwd()
 datas = [
     (str(root / "games.json"), "."),
     (str(root / "assets"), "assets"),
+    (str(root / "LICENSE"), "."),
 ]
 
 a = Analysis(

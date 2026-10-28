@@ -96,7 +96,7 @@ Long form:
 
 ## Feature surface
 
-| Area | What ships in 1.3.0 |
+| Area | What ships in 1.3.1 |
 | --- | --- |
 | Shell | Dark / light / system appearance (design tokens + app-wide style sheet), tray, single instance, TR/EN, autostart (Linux/Windows/macOS) |
 | Lock | Harvest token from Discord/Vesktop Local Storage; optional paste; guild membership required |
@@ -118,7 +118,7 @@ Long form:
 | Account | Custom status, clan/primary guild, entitlement count |
 | Logging | Rotating, redacted `kodyazar.log` (2 MB × 3); copy diagnostics from the Help tab |
 | Settings | Help tab: appearance, log level, credential harvest on/off, lock timeout, rate-limit stats; window geometry persisted |
-| Packaging | `kurulum.bat` / `windows.bat`; onedir + optional onefile PyInstaller; macOS `.app`; `catalog_sync` CLI |
+| Packaging | Windows zip, macOS arm64/Intel `.app`, Debian/Ubuntu `.deb`, Fedora/RHEL `.rpm`, Arch `.pkg.tar.zst`, generic Linux tarball, SHA-256 + `HASHES.txt`; `kurulum.bat` / `windows.bat`; `catalog_sync` CLI |
 
 ---
 
@@ -144,13 +144,26 @@ python3 -m pip install -r requirements.txt
 python3 run.py
 ```
 
+Release packages cover every desktop:
+
+| Platform | Download |
+| --- | --- |
+| Windows x64 | `KodYazar-Client-vX.Y.Z-windows-x64.zip` |
+| macOS Apple Silicon / Intel | `…-macos-arm64.zip` / `…-macos-x64.zip` |
+| Debian / Ubuntu x64 | `…-linux-x64.deb` |
+| Fedora / RHEL x64 | `…-linux-x64.rpm` |
+| Arch / Manjaro / EndeavourOS x64 | `…-arch-x64.pkg.tar.zst` |
+| Other Linux x64 | `…-linux-x64.tar.gz` |
+
+Get them from [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases). Each asset has a `.sha256`; the release also ships `HASHES.txt`.
+
 Windows:
 
-- **Release zip:** [Releases](https://github.com/KodYazicam/KY-GamePlayer/releases) → unzip the **whole** folder → `KodYazar\KodYazar.exe` (leave `_internal` next to it). SmartScreen may warn; that is expected — see [Windows EXE and antivirus](#windows-exe-and-antivirus).
+- **Release zip:** unzip the **whole** folder → `KodYazar\KodYazar.exe` (leave `_internal` next to it). SmartScreen may warn; that is expected — see [Windows EXE and antivirus](#windows-exe-and-antivirus).
 - **From source:** `kurulum.bat` once, then `windows.bat`.
 - **Local EXE:** `packaging\windows\build.bat` → `dist\KodYazar\KodYazar.exe`.
 
-macOS: same `pip` + `run.py`. Token/IPC under Application Support / tmp.
+Linux packages install under `/opt/kodyazar` and provide `/usr/bin/kodyazar`, a desktop entry and an icon. macOS zips contain an unsigned `.app` and require macOS 14+; first launch needs right-click → Open. Full commands: [`docs/install.md`](docs/install.md#2-release-packages).
 
 First boot:
 
@@ -342,7 +355,7 @@ KY-GamePlayer/
   ky_gameplayer/         package — see ky_gameplayer/README.md
     ui/                  window mixins, theme, async TaskRunner
   assets/                app icons
-  packaging/windows/     PyInstaller
+  packaging/             Windows, macOS and Linux PyInstaller/package scripts
   tests/                 Qt-free unittest
   docs/                  manuals
 ```
@@ -357,7 +370,8 @@ Full checklist: [`docs/roadmap.md`](docs/roadmap.md). Short version:
 | --- | --- |
 | **1.1.0** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, optional one-file EXE, settings block (log level / harvest / lock timeout), persisted window geometry, per-game templates, Listening helper, script hooks, science dry-run + 2000-game confirm cap, fingerprint capture button, rate-limit dashboard, social preview. |
 | **1.2.0** | `MainWindow` split into `ky_gameplayer/ui/`, blocking REST/harvest moved off the GUI thread, modern theme, keyring on Linux/macOS, per-game search cache, CI on 3.14 + lint + offscreen Qt + Windows. |
-| **1.3.0 now** | Non-blocking IPC connect and quest/science workers, ranked search + shortcuts, light/dark/system themes, opt-in catalog update, redacted rotating logs + diagnostics, HTTP retry hardening, 60 % coverage gate. |
+| **1.3.0** | Non-blocking IPC connect and quest/science workers, ranked search + shortcuts, light/dark/system themes, opt-in catalog update, redacted rotating logs + diagnostics, HTTP retry hardening, 60 % coverage gate. |
+| **1.3.1 now** | Native Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch and generic Linux release packages; one release with SHA-256 checksums. |
 | **1.4** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack, quest types beyond video/play/stream |
 | **2.0** | Multi-account identity files, signed binaries. **No** telemetry unless opt-in |
 
@@ -372,7 +386,7 @@ python -m compileall -q ky_gameplayer run.py tests
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test), a Windows job and a Linux coverage job. The suite is 180 tests and covers activity JSON, catalog load/sync/search ranking, IPC framing, quest/science workers, credential helpers, HTTP retry, profiles and templates, detect matching, script hooks, rate-limit counters, themes, diagnostics, translations and keyring storage.
+GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test), a Windows job and a Linux coverage job. The suite is 185 tests and covers activity JSON, catalog load/sync/search ranking, IPC framing, quest/science workers, credential helpers, HTTP retry, profiles and templates, detect matching, script hooks, rate-limit counters, themes, diagnostics, translations and keyring storage.
 
 Coverage uses a **60 %** line gate (currently 63 % on CI, 64 % locally) and uploads `coverage.xml`. HTTP tests use a local `ThreadingHTTPServer`; no test needs Discord, network access or a real token.
 

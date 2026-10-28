@@ -19,10 +19,11 @@ Bundled:
 
 - `games.json` (~12 MB) — required at runtime; the catalog is not downloaded on first paint.
 - `assets/` — icons.
+- `LICENSE` — KYAL-1.0 attribution.
 
 `ky_gameplayer.paths.resource()` resolves frozen paths. If you add a data file, add it to `datas` **and** load it via `resource()`.
 
-CI (tag `v*`): same spec on `windows-latest`, zips `dist\KodYazar` as `KodYazar-Client-<tag>-windows-x64.zip`, SHA-256 sidecar, `gh release create`.
+CI (tag `v*`): same spec on `windows-latest`, zips `dist\KodYazar` as `KodYazar-Client-<tag>-windows-x64.zip`, then the shared `publish` job adds SHA-256 sidecars, `HASHES.txt` and creates the GitHub Release.
 
 ## After the build
 

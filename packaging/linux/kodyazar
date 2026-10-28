@@ -1,0 +1,3 @@
+#!/bin/sh
+# Launcher installed by the .deb/.rpm/Arch packages.
+exec /opt/kodyazar/KodYazar "$@"

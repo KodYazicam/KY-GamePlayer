@@ -1,3 +1,40 @@
+## v1.3.1 — native Linux and macOS packages
+
+This is a packaging release: the application code is unchanged from 1.3.0, but
+tagged builds now produce native artifacts for every supported desktop instead
+of a Windows-only zip.
+
+### Downloads
+
+| Platform | Artifact |
+| --- | --- |
+| Windows x64 | `KodYazar-Client-v1.3.1-windows-x64.zip` |
+| macOS Apple Silicon | `KodYazar-Client-v1.3.1-macos-arm64.zip` |
+| macOS Intel | `KodYazar-Client-v1.3.1-macos-x64.zip` |
+| Debian / Ubuntu x64 | `KodYazar-Client-v1.3.1-linux-x64.deb` |
+| Fedora / RHEL x64 | `KodYazar-Client-v1.3.1-linux-x64.rpm` |
+| Arch / Manjaro / EndeavourOS x64 | `KodYazar-Client-v1.3.1-arch-x64.pkg.tar.zst` |
+| Other Linux x64 | `KodYazar-Client-v1.3.1-linux-x64.tar.gz` |
+
+Every asset has a matching `.sha256` file and the release includes a combined
+`HASHES.txt`. Linux packages install the app under `/opt/kodyazar`, add
+`/usr/bin/kodyazar`, a desktop entry and a 256 px icon. The generic tarball is
+portable: unpack it and run `KodYazar/KodYazar`.
+
+### Notes
+
+- PyInstaller cannot cross-compile. Windows, macOS arm64, macOS Intel and the
+  Ubuntu 22.04 Linux build run on native runners; the RPM is assembled by
+  `rpmbuild` in a Fedora container and the Arch package in an Arch container.
+- macOS `.app` bundles are **unsigned and not notarized**. First launch:
+  right-click → Open, or remove the quarantine attribute after copying the app
+  out of the zip. PySide6 6.12 requires macOS 14 (Sonoma) or newer.
+- Linux packages bundle Qt and the Python runtime. They still need the normal
+  X11/Wayland, OpenGL and font libraries listed in the package metadata.
+- Debian/Ubuntu packages are built on Ubuntu 22.04 (glibc 2.35) for a wider
+  compatibility floor. Arch packages are built in an Arch container so they
+  match the rolling release.
+
 ## v1.3.0 — responsive UI, resilience and diagnostics
 
 1.3 is about the seconds you used to lose: connecting, searching, opening quests
@@ -97,25 +134,41 @@ The window, the secrets file and the pipeline got the 1.2 treatment. No feature 
 
 ## Build
 
-Windows **onedir** build from `packaging/windows/KodYazar.spec`.
+- Windows: **onedir** build from `packaging/windows/KodYazar.spec`.
+- macOS: `.app` from `packaging/macos/KodYazar-macOS.spec`.
+- Linux: onedir tree from `packaging/linux/KodYazar-linux.spec`, then
+  `packaging/linux/package-deb.sh`, `package-rpm.sh`, `package-arch.sh` or
+  `package-tar.sh`.
 
 ## Download
 
-1. Get `KodYazar-Client-v*-windows-x64.zip` from this release.
-2. Unzip the whole folder. Do **not** copy only `KodYazar.exe`.
-3. Run `KodYazar\KodYazar.exe`.
-4. Start Discord / Vesktop first, join [KodYazar Client](https://discord.gg/rS42FCPfKZ), then connect.
+Pick the artifact for your platform:
 
-`games.json` (~12 MB catalog) and `assets/` are inside `_internal`.
+| Platform | Install |
+| --- | --- |
+| Windows x64 | Unzip the **whole** folder and run `KodYazar\KodYazar.exe`. Do not copy only the exe. |
+| macOS arm64 / x64 | Unzip, drag `KodYazar.app` to Applications, then right-click → Open on first launch. |
+| Debian / Ubuntu | `sudo apt install ./KodYazar-Client-v*-linux-x64.deb` |
+| Fedora / RHEL | `sudo dnf install ./KodYazar-Client-v*-linux-x64.rpm` |
+| Arch-based | `sudo pacman -U KodYazar-Client-v*-arch-x64.pkg.tar.zst` |
+| Other Linux | Unpack the tarball and run `KodYazar/KodYazar`; keep the whole folder together. |
+
+After launching, start Discord / Vesktop first, join
+[KodYazar Client](https://discord.gg/rS42FCPfKZ), then connect.
+
+`games.json` (~12 MB catalog) and `assets/` are inside `_internal` (Windows and
+Linux) or `KodYazar.app/Contents/Resources` (macOS).
 
 ## Also in this tree
 
 - Source: clone and `python run.py` (Linux / macOS / Windows)
 - Windows from source: `kurulum.bat` then `windows.bat`
+- Linux packages: [`docs/install.md`](install.md#linux-packages)
+- macOS app: [`docs/install.md`](install.md#macos-package)
 
 ## Antivirus / VirusTotal
 
-This zip is **unsigned PyInstaller**. SmartScreen will likely warn. That is the same class of warning you get from any random GitHub EXE, not a special KodYazar finding.
+The Windows zip is **unsigned PyInstaller**. SmartScreen will likely warn. That is the same class of warning you get from any random GitHub EXE, not a special KodYazar finding. The macOS `.app` is also unsigned/notarized; Linux packages are unsigned archives.
 
 We scanned the v1.0.0 binaries (17 Sep 2026); this release uses the same PyInstaller layout. Fresh hashes for this build are in `HASHES.txt`:
 
@@ -130,7 +183,7 @@ Hashes: [`docs/HASHES-v1.0.0.md`](https://github.com/KodYazicam/KY-GamePlayer/bl
 
 ## Notes
 
-- Unsigned PyInstaller binary. Windows SmartScreen / Defender may warn until you “Run anyway”.
+- Unsigned PyInstaller binaries. Windows SmartScreen / Defender and macOS Gatekeeper may warn until you explicitly allow them.
 - Chrome App-Bound cookies (`v20`) are not decrypted; paste cookie on the lock screen if harvest fails.
 - Official Discord shows one Playing activity. Extra IPC pins need Vesktop/arRPC.
 

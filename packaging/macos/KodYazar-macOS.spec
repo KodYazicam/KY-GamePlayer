@@ -1,10 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
+import tomllib
 
 root = Path.cwd()
+version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
 datas = [
     (str(root / "games.json"), "."),
     (str(root / "assets"), "assets"),
+    (str(root / "LICENSE"), "."),
 ]
 
 a = Analysis(
@@ -31,7 +34,6 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
-    icon=str(root / "assets" / "icon.png"),
 )
 coll = COLLECT(
     exe,
@@ -41,15 +43,19 @@ coll = COLLECT(
     upx=False,
     name="KodYazar",
 )
-app = BUNDLE(
-    coll,
-    name="KodYazar.app",
-    icon=str(root / "assets" / "icon.png"),
-    bundle_identifier="com.kodyazar.client",
-    info_plist={
+bundle_icon = root / "build" / "icon.icns"
+bundle_options = {
+    "name": "KodYazar.app",
+    "bundle_identifier": "com.kodyazar.client",
+    "info_plist": {
         "CFBundleName": "KodYazar Client",
         "CFBundleDisplayName": "KodYazar",
-        "CFBundleShortVersionString": "1.1.0",
+        "CFBundleShortVersionString": version,
+        "CFBundleVersion": version,
+        "LSMinimumSystemVersion": "14.0",
         "NSHighResolutionCapable": True,
     },
-)
+}
+if bundle_icon.exists():
+    bundle_options["icon"] = str(bundle_icon)
+app = BUNDLE(coll, **bundle_options)

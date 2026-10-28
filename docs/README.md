@@ -5,14 +5,14 @@ The root [`README.md`](../README.md) is the English operator entry. This folder 
 | File | Audience | Contents |
 | --- | --- | --- |
 | [`README.tr.md`](README.tr.md) | Turkish operators | Same story as the root README, in Turkish, with the development plan. |
-| [`install.md`](install.md) | Anyone running the app | Linux / Windows / macOS install, venv, bat files, EXE, desktop files. |
+| [`install.md`](install.md) | Anyone running the app | Windows / macOS / Linux release packages, venv, bat files, desktop files. |
 | [`architecture.md`](architecture.md) | Contributors | Boot, lock, IPC, REST, threads, process model. |
 | [`features.md`](features.md) | Operators + contributors | Every tab, control, shortcut, and side effect. |
 | [`data.md`](data.md) | Operators | Config/cache paths, JSON schemas, `games.json`. |
 | [`discord.md`](discord.md) | Contributors | IPC opcodes, REST routes, science events, quests. |
 | [`troubleshooting.md`](troubleshooting.md) | Operators | “Discord closed”, cookie v20, membership fail, IPC READY timeout. |
 | [`roadmap.md`](roadmap.md) | Everyone | Versioned development plan (also summarized in the root README). |
-| [`release-notes.md`](release-notes.md) | GitHub Releases | Body attached to every `v*` tag (Windows zip instructions). |
+| [`release-notes.md`](release-notes.md) | GitHub Releases | Body attached to every `v*` tag (all platform packages and checksums). |
 | [`HASHES-v1.0.0.md`](HASHES-v1.0.0.md) | Operators | SHA-256 and the v1.0.0 VirusTotal rows. Story lives in the root README. |
 
 Code-level READMEs (do not duplicate long prose here):

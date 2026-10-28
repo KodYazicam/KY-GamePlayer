@@ -69,6 +69,42 @@ Another process holds `kodyazar-client-lock`. Use the tray Quit, or kill the lef
 
 Install the wheel from `requirements.txt` inside the venv. Mixing system Qt and pip PySide6 breaks `platforms` plugins. On Linux, `libxcb` / `libglib` must exist (`apt install libxcb-cursor0` on Debian if the window never appears).
 
+## Linux package: “could not load the Qt platform plugin xcb”
+
+The package declares its X11/Wayland dependencies, but minimal desktops may not
+have them. Debian/Ubuntu:
+
+```bash
+sudo apt install libxcb-cursor0 libxkbcommon-x11-0 libgl1 libegl1
+```
+
+Fedora/RHEL:
+
+```bash
+sudo dnf install xcb-util-cursor libxkbcommon-x11 mesa-libGL mesa-libEGL
+```
+
+Arch:
+
+```bash
+sudo pacman -S xcb-util-cursor libxkbcommon-x11 libglvnd
+```
+
+If the package manager did not install the `.deb`/`.rpm` because of a dependency
+name, install the missing library first or use the generic tarball.
+
+## macOS: “KodYazar.app is damaged” or Gatekeeper blocks it
+
+The `.app` is unsigned and not notarized. After unzipping, right-click → Open,
+or remove the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/KodYazar.app
+```
+
+If macOS still refuses, check **System Settings → Privacy & Security** and allow
+the app. Do not disable Gatekeeper globally.
+
 ## EXE missing games.json
 
 Copy the **entire** `dist\KodYazar` folder. `paths.resource` looks in `_internal`. Rebuild with `packaging\windows\build.bat` after pulling a new `games.json`.
