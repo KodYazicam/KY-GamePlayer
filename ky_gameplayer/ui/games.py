@@ -4,9 +4,11 @@ import random
 from collections import deque
 
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QComboBox,
+    QMessageBox,
 )
 
 from ..games import Game
@@ -53,6 +55,8 @@ class GamesMixin:
             games = [game for game in games if game.id in allow]
         self.model.reset_games(games)
         self.count_label.setText(i18n("games_count_filter", shown=len(games), n=len(self.catalog.games)))
+        if hasattr(self, "empty_label"):
+            self.empty_label.setVisible(not games)
         if current_id:
             row = self.model.index_for_id(current_id)
             if row >= 0:
@@ -266,8 +270,24 @@ class GamesMixin:
         QShortcut(QKeySequence("Ctrl+L"), self, self._clear_rpc)
         QShortcut(QKeySequence("Ctrl+P"), self, self._pin_current)
         QShortcut(QKeySequence("Ctrl+D"), self, self._scan_running)
-        QShortcut(QKeySequence("Ctrl+F"), self, self._toggle_favorite)
+        QShortcut(QKeySequence("Ctrl+F"), self, self._focus_search)
+        QShortcut(QKeySequence("Escape"), self, self._clear_search)
+        QShortcut(QKeySequence("Ctrl+Shift+F"), self, self._toggle_favorite)
         QShortcut(QKeySequence("Ctrl+Shift+S"), self, self._fill_store_button)
+        QShortcut(QKeySequence("F1"), self, self._show_shortcuts)
+
+    def _focus_search(self) -> None:
+        self.search.setFocus(Qt.FocusReason.ShortcutFocusReason)
+        self.search.selectAll()
+
+    def _clear_search(self) -> None:
+        if self.search.text():
+            self.search.clear()  # textChanged schedules a debounced reload
+        else:
+            self.search.setFocus()
+
+    def _show_shortcuts(self) -> None:
+        QMessageBox.information(self, i18n("shortcuts_title"), i18n("shortcuts_text"))
 
     def _refresh_fav_buttons(self) -> None:
         game = self._game

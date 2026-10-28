@@ -227,6 +227,13 @@ class LayoutMixin:
         self.list_view.selectionModel().currentChanged.connect(self._on_game_changed)
         layout.addWidget(self.list_view, 1)
 
+        self.empty_label = QLabel(i18n("search_empty"))
+        self.empty_label.setObjectName("muted")
+        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_label.setWordWrap(True)
+        self.empty_label.hide()
+        layout.addWidget(self.empty_label)
+
         self.game_meta = QTextEdit()
         self.game_meta.setReadOnly(True)
         self.game_meta.setMaximumHeight(168)

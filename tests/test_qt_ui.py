@@ -72,6 +72,35 @@ class TaskRunnerTests(unittest.TestCase):
         self.assertEqual(runner.pending, 0)
 
 
+class ModelTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = _app()
+
+    def test_row_index_follows_resets(self) -> None:
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QColor, QPixmap
+
+        from ky_gameplayer.games import Game
+        from ky_gameplayer.model import GameListModel
+
+        model = GameListModel()
+        first = [Game(id="a", name="A"), Game(id="b", name="B")]
+        model.reset_games(first)
+        self.assertEqual(model.index_for_id("b"), 1)
+        self.assertEqual(model.index_for_id("missing"), -1)
+
+        icon = QPixmap(4, 4)
+        icon.fill(QColor("#ff0000"))
+        model.set_icon("b", icon)
+        stored = model.index(1).data(Qt.ItemDataRole.DecorationRole)
+        self.assertEqual(stored.cacheKey(), icon.cacheKey())
+
+        model.reset_games(list(reversed(first)))
+        self.assertEqual(model.index_for_id("a"), 1)
+        self.assertEqual(model.index_for_id("b"), 0)
+
+
 @unittest.skipUnless(os.environ.get("KODYAZAR_UI_TESTS"), "set KODYAZAR_UI_TESTS=1 to build the window")
 class WindowSmokeTests(unittest.TestCase):
     @classmethod
