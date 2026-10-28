@@ -55,7 +55,8 @@ class SecretsTests(unittest.TestCase):
         self.assertNotIn("token", on_disk)
         self.assertNotIn("cookie", on_disk)
         self.assertEqual(on_disk["fingerprint"], "fp")
-        self.assertEqual(oct(self.path.stat().st_mode & 0o777), "0o600")
+        if os.name != "nt":  # Windows ignores POSIX mode bits
+            self.assertEqual(oct(self.path.stat().st_mode & 0o777), "0o600")
 
         stored = json.loads(self.keyring.store[(secrets._KEYRING_SERVICE, secrets._KEYRING_ACCOUNT)])
         self.assertEqual(stored, {"token": "tok", "cookie": "c"})
