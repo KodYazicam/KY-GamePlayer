@@ -17,10 +17,19 @@ from unittest import mock
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import (
+        QApplication,
+        QCheckBox,
+        QComboBox,
+        QLineEdit,
+        QPushButton,
+        QWidget,
+    )
 except Exception:  # pragma: no cover - PySide6 is optional for the core suite
     raise unittest.SkipTest("PySide6 is not installed") from None
 
+from ky_gameplayer.ui.presence import PresenceMixin
+from ky_gameplayer.ui.science_ui import ScienceMixin
 from ky_gameplayer.ui.tasks import TaskRunner
 
 
@@ -29,6 +38,13 @@ def _app() -> QApplication:
     if app is None:
         app = QApplication([])
     return app
+
+
+def _pump(app: QApplication, predicate, timeout: float = 5.0) -> None:
+    deadline = time.monotonic() + timeout
+    while not predicate() and time.monotonic() < deadline:
+        app.processEvents()
+        time.sleep(0.01)
 
 
 class TaskRunnerTests(unittest.TestCase):
@@ -160,6 +176,121 @@ class ModelTests(unittest.TestCase):
             painter.end()
 
 
+class _ScanHarness(PresenceMixin, QWidget):
+    """Minimal widget that exercises the real PresenceMixin scan path."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.tasks = TaskRunner(self)
+        self._scan_busy = False
+        self._detector = mock.Mock()
+        self.detect_box = QComboBox()
+        self.detect_apply = QCheckBox()
+        self._detected: list[object] = []
+        self._game = None
+        self._log_records: list[tuple[str, str, dict]] = []
+        self._apply_detected = mock.Mock()
+
+
+class _FingerprintHarness(ScienceMixin, QWidget):
+    """Minimal widget that exercises the real ScienceMixin fingerprint path."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.tasks = TaskRunner(self)
+        self._preferred_client = None
+        self.btn_science_fp_capture = QPushButton()
+        self.science_fp = QLineEdit()
+        self.science = mock.Mock()
+        self.status = ""
+        self._log_records: list[tuple[str, str, dict]] = []
+
+    def _set_status(self, text: str) -> None:
+        self.status = text
+
+    def _log(self, text: str = "", *, key: str = "", **kwargs) -> None:
+        self._log_records.append((text, key, dict(kwargs)))
+
+
+class AsyncUIRegressionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = _app()
+
+    def test_scan_result_is_applied_on_the_gui_thread(self) -> None:
+        from ky_gameplayer.detect import DetectedGame
+        from ky_gameplayer.games import Game
+        from ky_gameplayer.processes import RunningProcess
+
+        item = DetectedGame(
+            game=Game(id="42", name="Test Game"),
+            process=RunningProcess(pid=1234, name="test.exe", cmdline="", exe="/tmp/test.exe"),
+            matched="test.exe",
+        )
+        harness = _ScanHarness()
+        harness._detector.scan.return_value = [item]
+        try:
+            harness._scan_running()
+            self.assertTrue(harness._scan_busy)
+            _pump(self.app, lambda: not harness._scan_busy)
+            self.assertFalse(harness._scan_busy)
+            self.assertEqual(harness._detected, [item])
+            self.assertEqual(harness.detect_box.count(), 1)
+            self.assertEqual(harness.detect_box.itemText(0), "Test Game  ·  pid 1234  ·  test.exe")
+        finally:
+            harness.tasks.cancel_all()
+            harness.deleteLater()
+
+    def test_scan_failure_resets_busy(self) -> None:
+        harness = _ScanHarness()
+        harness._detector.scan.side_effect = RuntimeError("boom")
+        try:
+            harness._scan_running()
+            self.assertTrue(harness._scan_busy)
+            _pump(self.app, lambda: not harness._scan_busy)
+            self.assertFalse(harness._scan_busy)
+            self.assertEqual(harness.detect_box.count(), 0)
+        finally:
+            harness.tasks.cancel_all()
+            harness.deleteLater()
+
+    def test_fingerprint_capture_reenables_button(self) -> None:
+        from types import SimpleNamespace
+
+        harness = _FingerprintHarness()
+        harness._preferred_client = SimpleNamespace(user_data=Path("/tmp/discord"))
+        try:
+            with mock.patch("ky_gameplayer.client_auth.harvest_fingerprint", return_value="fp-value"):
+                harness._capture_fingerprint()
+                self.assertFalse(harness.btn_science_fp_capture.isEnabled())
+                _pump(self.app, harness.btn_science_fp_capture.isEnabled)
+            self.assertTrue(harness.btn_science_fp_capture.isEnabled())
+            self.assertEqual(harness.science_fp.text(), "fp-value")
+            harness.science.save_credentials.assert_called_with(fingerprint="fp-value")
+            self.assertTrue(harness.status)
+        finally:
+            harness.tasks.cancel_all()
+            harness.deleteLater()
+
+    def test_fingerprint_capture_failure_reenables_button(self) -> None:
+        from types import SimpleNamespace
+
+        harness = _FingerprintHarness()
+        harness._preferred_client = SimpleNamespace(user_data=Path("/tmp/discord"))
+        try:
+            with mock.patch(
+                "ky_gameplayer.client_auth.harvest_fingerprint", side_effect=RuntimeError("broken state")
+            ):
+                harness._capture_fingerprint()
+                self.assertFalse(harness.btn_science_fp_capture.isEnabled())
+                _pump(self.app, harness.btn_science_fp_capture.isEnabled)
+            self.assertTrue(harness.btn_science_fp_capture.isEnabled())
+            self.assertIn("broken state", harness.status)
+        finally:
+            harness.tasks.cancel_all()
+            harness.deleteLater()
+
+
 @unittest.skipUnless(os.environ.get("KODYAZAR_UI_TESTS"), "set KODYAZAR_UI_TESTS=1 to build the window")
 class WindowSmokeTests(unittest.TestCase):
     @classmethod
@@ -239,6 +370,47 @@ class WindowSmokeTests(unittest.TestCase):
                 finally:
                     win.tasks.cancel_all()
                     theme.apply_theme(self.app, "dark")
+
+    def test_malformed_settings_do_not_crash_window(self) -> None:
+        from ky_gameplayer import window as window_module
+        from ky_gameplayer.paths import app_root
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            cfg = base / "cfg"
+            cfg.mkdir(parents=True)
+            (cfg / "profiles.json").write_text(
+                json.dumps(
+                    {
+                        "settings": {
+                            "random_interval": "abc",
+                            "science_hours": "nope",
+                            "lock_timeout": {"bad": 1},
+                            "auto_reconnect": "maybe",
+                            "theme_mode": "neon",
+                            "splitter_sizes": ["x", 2],
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with (
+                mock.patch.object(window_module, "_config_dir", return_value=cfg),
+                mock.patch.object(window_module, "_cache_dir", return_value=base / "cache"),
+            ):
+                win = window_module.MainWindow(app_root())
+                try:
+                    self.assertEqual(win.store.settings()["random_interval"], 60)
+                    self.assertEqual(win.store.settings()["science_hours"], 2.0)
+                    self.assertEqual(win.store.settings()["auto_reconnect"], True)
+                    self.assertEqual(win.store.settings()["theme_mode"], "dark")
+                    self.assertEqual(win._lock_timeout, 20)
+                    self.assertEqual(win.random_interval.value(), 60)
+                finally:
+                    win.tasks.cancel_all()
+                    win.hide()
+                    win.deleteLater()
+                    self.app.processEvents()
 
     def test_diagnostics_copy_is_redacted(self) -> None:
         from ky_gameplayer import window as window_module

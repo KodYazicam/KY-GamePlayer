@@ -5,8 +5,6 @@ import os
 import time
 from pathlib import Path
 
-from threading import Thread
-
 from .common import MAX_EXTRA_SLOTS, ExtraSlot
 
 from PySide6.QtCore import QTime, QTimer, Qt
@@ -455,16 +453,15 @@ class PresenceMixin:
         if getattr(self, "_scan_busy", False):
             return
         self._scan_busy = True
+        self.tasks.submit(
+            self._detector.scan,
+            on_done=self._apply_scan,
+            on_error=self._scan_failed,
+            name="detect",
+        )
 
-        def work() -> None:
-            try:
-                found = self._detector.scan()
-            except Exception:
-                found = []
-            QTimer.singleShot(0, lambda items=found: self._apply_scan(items))
-
-
-        Thread(target=work, name="ky-detect", daemon=True).start()
+    def _scan_failed(self, _exc: BaseException) -> None:
+        self._apply_scan([])
 
     def _apply_scan(self, found) -> None:
         self._scan_busy = False

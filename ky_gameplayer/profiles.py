@@ -1,11 +1,188 @@
 from __future__ import annotations
 
 import json
+import math
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
 
 from .activity import ActivityConfig
 from .paths import atomic_write
+
+SCHEMA_VERSION = 1
+
+# Settings written by the UI are plain JSON values. Files can be edited by hand
+# and the import dialog accepts arbitrary JSON, so every read goes through
+# these coercers instead of a bare int()/float() call.
+_BOOL_SETTINGS: dict[str, bool] = {
+    "auto_reconnect": True,
+    "idle_clear": False,
+    "schedule_enabled": False,
+    "detect_enabled": False,
+    "detect_apply": False,
+    "detect_pid": True,
+    "science_enabled": False,
+    "science_on_random": True,
+    "science_on_detect": False,
+    "science_on_current": True,
+    "science_dry_run": False,
+    "use_game_templates": True,
+    "harvest_enabled": True,
+}
+
+_INT_SETTINGS: dict[str, tuple[int, int, int]] = {
+    "random_interval": (60, 5, 86400),
+    "random_norepeat": (8, 0, 50),
+    "cycle_interval": (20, 5, 3600),
+    "idle_seconds": (1800, 30, 86400),
+    "science_batch": (20, 1, 200),
+    "lock_timeout": (20, 5, 120),
+}
+
+_FLOAT_SETTINGS: dict[str, tuple[float, float, float]] = {
+    "science_hours": (2.0, 0.01, 24.0),
+    "science_delay": (0.8, 0.0, 10.0),
+    "science_jitter": (0.05, 0.0, 0.5),
+    "science_target_hours": (0.0, 0.0, 500.0),
+}
+
+_STR_SETTINGS: dict[str, tuple[str, Collection[str] | None]] = {
+    "random_source": ("filter", {"filter", "all", "favorites", "playlist"}),
+    "schedule_start": ("09:00", None),
+    "schedule_end": ("23:00", None),
+    "science_mode": ("playtime", {"playtime", "played"}),
+    "science_source": ("current", {"current", "filter", "favorites", "playlist", "all", "missing"}),
+    "lang": ("tr", {"tr", "en"}),
+    "log_level": ("INFO", {"DEBUG", "INFO", "WARNING", "ERROR"}),
+    "theme_mode": ("dark", {"system", "dark", "light"}),
+}
+
+
+def _as_bool(value: Any, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in (0, 1):
+        return bool(value)
+    if isinstance(value, str):
+        text = value.strip().casefold()
+        if text in {"1", "true", "yes", "on"}:
+            return True
+        if text in {"0", "false", "no", "off"}:
+            return False
+    return default
+
+
+def _as_int(value: Any, default: int, minimum: int | None = None, maximum: int | None = None) -> int:
+    if isinstance(value, bool):
+        result = default
+    elif isinstance(value, int):
+        result = value
+    elif isinstance(value, float):
+        result = int(value) if math.isfinite(value) else default
+    elif isinstance(value, str):
+        text = value.strip()
+        try:
+            result = int(text)
+        except ValueError:
+            try:
+                number = float(text)
+            except ValueError:
+                result = default
+            else:
+                result = int(number) if math.isfinite(number) else default
+    else:
+        result = default
+    if minimum is not None:
+        result = max(minimum, result)
+    if maximum is not None:
+        result = min(maximum, result)
+    return result
+
+
+def _as_float(value: Any, default: float, minimum: float | None = None, maximum: float | None = None) -> float:
+    if isinstance(value, bool):
+        result = default
+    elif isinstance(value, (int, float)):
+        try:
+            result = float(value)
+        except (OverflowError, ValueError):
+            result = default
+    elif isinstance(value, str):
+        try:
+            result = float(value.strip())
+        except ValueError:
+            result = default
+    else:
+        result = default
+    if not math.isfinite(result):
+        result = default
+    if minimum is not None:
+        result = max(minimum, result)
+    if maximum is not None:
+        result = min(maximum, result)
+    return result
+
+
+def _as_str(value: Any, default: str, allowed: Collection[str] | None = None) -> str:
+    if not isinstance(value, str) or not value.strip():
+        return default
+    if allowed is not None and value not in allowed:
+        return default
+    return value
+
+
+def settings_bool(settings: dict[str, Any], key: str, default: bool) -> bool:
+    return _as_bool(settings.get(key), default)
+
+
+def settings_int(
+    settings: dict[str, Any],
+    key: str,
+    default: int,
+    *,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> int:
+    return _as_int(settings.get(key), default, minimum, maximum)
+
+
+def settings_float(
+    settings: dict[str, Any],
+    key: str,
+    default: float,
+    *,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    return _as_float(settings.get(key), default, minimum, maximum)
+
+
+def settings_str(
+    settings: dict[str, Any],
+    key: str,
+    default: str,
+    *,
+    allowed: Collection[str] | None = None,
+) -> str:
+    return _as_str(settings.get(key), default, allowed)
+
+
+def sanitize_settings(settings: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy with known keys coerced, clamped and unknown keys kept."""
+    clean = dict(settings)
+    for key, default in _BOOL_SETTINGS.items():
+        if key in clean:
+            clean[key] = _as_bool(clean[key], default)
+    for key, (default, minimum, maximum) in _INT_SETTINGS.items():
+        if key in clean:
+            clean[key] = _as_int(clean[key], default, minimum, maximum)
+    for key, (default, minimum, maximum) in _FLOAT_SETTINGS.items():
+        if key in clean:
+            clean[key] = _as_float(clean[key], default, minimum, maximum)
+    for key, (default, allowed) in _STR_SETTINGS.items():
+        if key in clean:
+            clean[key] = _as_str(clean[key], default, allowed)
+    return clean
 
 
 class ProfileStore:
@@ -13,6 +190,7 @@ class ProfileStore:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.data: dict[str, Any] = {
+            "schema_version": SCHEMA_VERSION,
             "last_game_id": None,
             "profiles": {},
             "favorites": [],
@@ -45,6 +223,12 @@ class ProfileStore:
                 self.data["weights"] = {}
             if not isinstance(self.data.get("settings"), dict):
                 self.data["settings"] = {}
+            else:
+                self.data["settings"] = sanitize_settings(self.data["settings"])
+            version = self.data.get("schema_version")
+            if not isinstance(version, int) or isinstance(version, bool):
+                version = SCHEMA_VERSION
+            self.data["schema_version"] = version
 
     def save(self) -> None:
         atomic_write(self.path, json.dumps(self.data, indent=2, ensure_ascii=False))
@@ -70,7 +254,8 @@ class ProfileStore:
         if not isinstance(raw, dict):
             return None
         game_id = raw.get("game_id")
-        config = ActivityConfig.from_json(raw.get("activity") or {})
+        activity = raw.get("activity")
+        config = ActivityConfig.from_json(activity if isinstance(activity, dict) else {})
         return (str(game_id) if game_id else None, config)
 
     def put(self, name: str, game_id: str | None, config: ActivityConfig) -> None:
@@ -209,7 +394,10 @@ class ProfileStore:
             self.data.setdefault("weights", {}).update(weights)
         settings = payload.get("settings")
         if isinstance(settings, dict):
-            self.data.setdefault("settings", {}).update(settings)
+            merged = dict(self.data.get("settings") or {})
+            merged.update(settings)
+            self.data["settings"] = sanitize_settings(merged)
+        self.data["schema_version"] = SCHEMA_VERSION
         if payload.get("last_game_id"):
             self.data["last_game_id"] = payload["last_game_id"]
         self.save()

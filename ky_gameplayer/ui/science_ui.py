@@ -3,9 +3,6 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from threading import Thread
-
-from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QFileDialog,
     QInputDialog,
@@ -113,7 +110,7 @@ class ScienceMixin:
         self.btn_science_fp_capture.setEnabled(False)
         self._set_status(i18n("fp_capture_busy"))
 
-        def work() -> None:
+        def work() -> tuple[str, str]:
             fingerprint = ""
             message = ""
             try:
@@ -136,18 +133,24 @@ class ScienceMixin:
                     message = i18n("fp_capture_ok") if fingerprint else i18n("fp_capture_empty")
             except Exception as exc:  # noqa: BLE001 - surfaced to the user
                 message = i18n("fp_capture_fail", exc=exc)
+            return fingerprint, message
 
-            def done() -> None:
-                self.btn_science_fp_capture.setEnabled(True)
-                if fingerprint:
-                    self.science_fp.setText(fingerprint)
-                    self.science.save_credentials(fingerprint=fingerprint)
-                self._set_status(message)
-                self._log(key="log_fp_capture", message=message)
+        def done(result: tuple[str, str]) -> None:
+            fingerprint, message = result
+            self.btn_science_fp_capture.setEnabled(True)
+            if fingerprint:
+                self.science_fp.setText(fingerprint)
+                self.science.save_credentials(fingerprint=fingerprint)
+            self._set_status(message)
+            self._log(key="log_fp_capture", message=message)
 
-            QTimer.singleShot(0, done)
+        def failed(exc: BaseException) -> None:
+            self.btn_science_fp_capture.setEnabled(True)
+            message = i18n("fp_capture_fail", exc=exc)
+            self._set_status(message)
+            self._log(key="log_fp_capture", message=message)
 
-        Thread(target=work, daemon=True).start()
+        self.tasks.submit(work, on_done=done, on_error=failed, name="fingerprint")
 
     def _save_game_template(self) -> None:
         if self._game is None:
