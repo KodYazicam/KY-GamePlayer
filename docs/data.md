@@ -18,14 +18,24 @@ Resolved in `ky_gameplayer.paths`.
 | `config/science_state.json` | `ScienceState` / `secrets.save_mapping` | Token, cookie, fingerprint, analytics_token, fetched_at |
 | `config/games.json` | `catalog_sync` / `MainWindow` | Optional user-updated catalog. Takes precedence over the bundled copy when it loads; absent by default. |
 | `config/games.json.bak` | `catalog_sync` | Previous user catalog (or the bundled catalog after the first update). Used by **Restore**. |
-| `cache/logs/kodyazar-YYYYMMDD.log` | `__main__._setup_logging` | INFO logs, unhandled exceptions |
+| `cache/logs/kodyazar.log` | `__main__._setup_logging` | Redacted IPC/quest/science status and unhandled exceptions. Rotates at 2 MB; `.1`–`.3` are kept. |
 | `cache/cdn/` | `ImageCache` | PNG/JPEG downloaded from Discord CDN (game icons, badges, quest art) |
 
 `atomic_write` writes a temp file in the same directory, `fsync`s, `os.replace`s, then `chmod 0600`.
 
+## Logs and diagnostics
+
+- `logging_setup.setup_logging()` installs a `RotatingFileHandler` (`maxBytes=2_000_000`, `backupCount=3`) on `logs/kodyazar.log`.
+- A `RedactingFormatter` masks Discord token shapes, `Authorization:` headers and `token=` / `cookie=` / `secret=` pairs before writing. The in-memory event view used by diagnostics goes through the same `redact()` function.
+- The Help-tab **Log level** setting updates the root logger **and** every handler.
+- **Copy diagnostics** builds a report from app version, OS, Python/Qt, catalog size, IPC availability, a whitelist of safe settings, recent events and the log tail. User paths, tokens and cookies are not included.
+- **Open log folder** opens `cache_dir()/logs`.
+
+The log directory stays bounded at about 8 MB (four 2 MB files).
+
 ## `science_state.json`
 
-Plain JSON on Linux/macOS. On Windows, bytes are `b"KY1\x00" + CryptProtectData(utf-8 json)` so another Windows user on the same disk cannot read it.
+On Windows, bytes are `b"KY1\x00" + CryptProtectData(utf-8 json)` so another Windows user on the same disk cannot read it. On Linux/macOS the JSON stores only non-sensitive values; `token`, `cookie` and `analytics_token` live in the OS keyring (see [Secret storage](#secret-storage)).
 
 ```json
 {
@@ -117,7 +127,7 @@ Do not pretty-print this file in git; keep it compact.
 | --- | --- |
 | `science_state.json` | `0600`; Windows DPAPI (`KY1\0`); Linux/macOS secrets in the OS keyring |
 | `profiles.json` | `0600` via `atomic_write` |
-| logs | created `0600` best-effort |
+| `logs/kodyazar.log`, `.1`–`.3` | created `0600` best-effort; redacted before formatting |
 | CDN cache | ordinary user files |
 
 ### Secret storage

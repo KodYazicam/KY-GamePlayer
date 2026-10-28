@@ -14,7 +14,7 @@ It is **not** a bot, **not** a hosted service, and it does **not** send your tok
 | --- | --- | --- |
 | `science_state.json` | config dir | **High** — user token, cookie, analytics token, executable fingerprint |
 | `profiles.json` | config dir | Medium — RPC presets, favorites, science UI settings (not the token) |
-| `logs/kodyazar-YYYYMMDD.log` | cache dir | Medium — IPC status, quest/science progress. Must not contain raw tokens |
+| `logs/kodyazar.log` (+ `.1`–`.3`) | cache dir | Medium — redacted IPC/quest/science status; rotates at 2 MB and never stores raw tokens |
 | `cdn/` | cache dir | Low — downloaded PNG icons |
 
 Windows encrypts `science_state.json` with DPAPI (`KY1\x00` + `CryptProtectData`).
@@ -25,6 +25,13 @@ falls back to the previous plain `0600` file. `KODYAZAR_NO_KEYRING=1` forces tha
 fallback explicitly.
 
 Paths: [`docs/data.md`](docs/data.md).
+
+## Logs and diagnostics
+
+- The log is redacted **before formatting**: token-shaped strings, `Authorization:` headers and `token=` / `cookie=` / `secret=` pairs become `[redacted]`.
+- Files rotate at 2 MB with three backups (`kodyazar.log`, `.1`–`.3`), so the log directory stays bounded.
+- **Help → Copy diagnostics** includes version, OS, Python/Qt, catalog size, IPC availability, safe settings and a redacted log tail. It never includes tokens, cookies, fingerprints or full user paths.
+- **Help → Open log folder** opens the cache directory. Review the file before posting a bug report; redaction is defence in depth, not a reason to paste blindly.
 
 ## Token harvest
 

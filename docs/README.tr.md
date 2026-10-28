@@ -12,6 +12,12 @@
   <a href="./README.tr.md">Türkçe</a>
 </p>
 
+<p align="center">
+  <img src="screenshot-games.png" alt="Oyun menüsü — koyu tema" width="49%">
+  <img src="screenshot-games-light.png" alt="Oyun menüsü — açık tema" width="49%">
+</p>
+<p align="center"><em>Gerçek arayüz, sentetik demo verisi.</em></p>
+
 ```
 Author : Batuhan (KodYazicam)
 Project: KY-GamePlayer (KodYazar Client)
@@ -24,7 +30,7 @@ PyPI’de yok. Repoyu klonla. Discord Stable / Canary / PTB / Vesktop / Vencord 
 
 Bu bir **yerel kullanıcı istemcisi**. Bu makinedeki açık Discord oturumunun token’ını okur; IPC ve API v9 ile Discord’a gider. KodYazicam sunucusuna kimlik göndermez. Resmi olmayan kullanıcı-token otomasyonu Discord kurallarını ihlal edebilir — risk sende. [`../SECURITY.md`](../SECURITY.md).
 
-Sürüm **1.2.0**: `MainWindow` `ky_gameplayer/ui/` modüllerine bölündü, engelleyen Discord çağrıları GUI iş parçacığından çıkarıldı, modern tema, Linux/macOS'ta keyring ve 3.14 + lint + offscreen Qt + Windows CI.
+Sürüm **1.3.0**: IPC bağlantısı, quest/science işleri ve taramalar GUI iş parçacığından çıkarıldı; sıralı arama, kompakt katalog ve beş alt sekme; koyu/açık/sistem teması; isteğe bağlı `games.json` güncellemesi; 429 + geçici 5xx yeniden denemeleri; dönen, redakte edilen günlük ve tanılama raporu; %60 kapsam eşiği.
 
 İngilizce kök README ile aynı ürün. Ayrıntılı kontrol listesi: [`features.md`](features.md). Mimari: [`architecture.md`](architecture.md). Kurulum: [`install.md`](install.md). Yol haritası: [`roadmap.md`](roadmap.md).
 
@@ -45,23 +51,27 @@ Sürüm **1.2.0**: `MainWindow` `ky_gameplayer/ui/` modüllerine bölündü, eng
 
 ---
 
-## Özellik yüzeyi (1.2.0)
+## Özellik yüzeyi (1.3.0)
 
 | Alan | Ne var |
 | --- | --- |
-| Kabuk | Koyu Fusion, tepsi, tek örnek, TR/EN, açılışta başlat |
+| Kabuk | Koyu / açık / sistem Fusion, tepsi, tek örnek, TR/EN, açılışta başlat |
 | Kilit | Discord/Vesktop Local Storage’tan token; yapıştırma; sunucu üyeliği şart |
-| Oyunlar | Arama, tema/mağaza/OS/ikon/kapak/overlay, favori, playlist, hariç, ağırlık |
-| RPC | Playing…Competing, görsel, party, buton **veya** secret, flag |
+| Oyunlar | Kompakt katalog, sıralı arama, kapsam çipleri, filtreler, favori, playlist, hariç, ağırlık |
+| RPC | Playing…Competing, görsel, party, buton **veya** secret, flag; Presence/Gelişmiş/Otomasyon/Bilim/Günlük alt sekmeleri |
+| Katalog | İsteğe bağlı resmî `games.json` güncellemesi; fark önizlemesi ve yedekten dönüş |
 | Algıla | 5 sn süreç tarama; Proton/Wine; PID |
+| Duyarlılık | IPC bağlantısı, REST, kimlik çekme ve taramalar GUI dışında |
+| Dayanıklılık | 429 + geçici 500/502/503/504 yeniden denemesi; `Retry-After`; POST isteğe bağlı |
 | Random | Ağırlıklı havuz, son N’yi tekrarlama, Ctrl+R |
 | Ekler | En fazla 8 ek IPC (Vesktop yığabilir; resmi Discord tek Playing) |
 | Döngü / zaman | Satır kareleri; saat penceresi; idle temizle; yeniden bağlan |
-| Science | Saat veya “oynandı 1 dk”; batch/gecikme/jitter; DPAPI |
+| Science | Saat veya “oynandı 1 dk”; batch/gecikme/jitter; DPAPI; dry-run; 2000 oyun onay sınırı |
 | Görev | Tara, enroll, video 1 sn, heartbeat ~20 sn, claim |
 | Rozet | HypeSquad; sahip olunan flag; hediye/Nitro katalog |
 | Gizlilik | Özel / kısıtlı / herkese açık |
 | Hesap | Özel durum, clan, entitlement sayısı |
+| Günlük | Dönen, redakte edilen `kodyazar.log` (2 MB × 3); tanılama kopyala |
 | Paket | `kurulum.bat` / `windows.bat`; PyInstaller |
 
 Her kontrol: [`features.md`](features.md).
@@ -178,9 +188,9 @@ Bağlantı:
 - Linux `$XDG_RUNTIME_DIR/discord-ipc-N` (+ Flatpak/Snap/Vesktop)
 - macOS tmp / Application Support
 
-`SET_ACTIVITY` `ActivityConfig.build()` ile üretilir. Önizleme Discord kartına benzer. Algılama `executables[]` (launcher hariç).
+`SET_ACTIVITY` `ActivityConfig.build()` ile üretilir. Önizleme Discord kartına benzer. Algılama `executables[]` (launcher hariç). Sağ taraf **Yayın / Gelişmiş / Otomasyon / Bilim / Günlük** alt sekmelerine ayrılmıştır; katalog tarafı arama, kapsam çipleri ve katlanmış filtrelerle kısadır.
 
-Kısayollar: Ctrl+R random, Ctrl+U RPC, Ctrl+L temizle, Ctrl+P pin, Ctrl+D tara, Ctrl+F favori, Ctrl+Shift+S mağaza butonu.
+Kısayollar: Ctrl+R random, Ctrl+U RPC, Ctrl+L temizle, Ctrl+P pin, Ctrl+D tara, Ctrl+F aramaya odaklan, Esc aramayı temizle, Ctrl+Shift+F favori, Ctrl+Shift+S mağaza butonu, F1 kısayol listesi.
 
 ---
 
@@ -195,7 +205,7 @@ Rich Presence değil. `POST /science`: `launch_game` + `running_game_heartbeat`.
 
 Token + çerez şart. `executable_fingerprint` resmi client’ın gerçek oyun algısından gelir; yoksa bazı sayaçlar paketi yok sayabilir. 24 bin oyunun hepsine basmadan önce [`discord.md`](discord.md) ve Discord ToS.
 
-Kimlik: `science_state.json` (Windows DPAPI, diğerlerinde `0600`).
+Kimlik: `science_state.json` (Windows DPAPI; Linux/macOS’ta token/çerez/analytics OS keyring’inde, dosya `0600`).
 
 ---
 
@@ -213,7 +223,7 @@ Kimlik: `science_state.json` (Windows DPAPI, diğerlerinde `0600`).
 | Linux | `~/.config/kodyazar` | `~/.cache/kodyazar` |
 | macOS | `~/Library/Application Support/kodyazar` | `~/Library/Caches/kodyazar` |
 
-`science_state.json` yüksek gizlilik. Şema: [`data.md`](data.md).
+`science_state.json` yüksek gizlilik. Günlük: `logs/kodyazar.log` (+ `.1`–`.3`, her biri 2 MB, redakte). **Yardım → Tanılamayı kopyala** güvenli ayarlar ve redakte günlük kuyruğuyla rapor üretir. Şema: [`data.md`](data.md).
 
 ---
 
@@ -233,11 +243,12 @@ Tam liste: [`roadmap.md`](roadmap.md).
 
 | Aşama | Hedef |
 | --- | --- |
-| **1.0.x şimdi** | Dokümantasyon, CI, GitHub, `icon.ico`, Windows release zip. Sosyal önizleme açık. |
+| **1.0.x** | Dokümantasyon, CI, GitHub, `icon.ico`, Windows release zip. Sosyal önizleme açık. |
 | **1.1** | Katalog senkron CLI, Linux desktop’u git kopyasını ezmeden kurmak, macOS `.app`, pencere geometrisi |
-| **1.2** | Kendi uygulamanın asset tarayıcısı, Listening yardımcısı, resmi Discord’da ek slot uyarısı |
-| **1.3** | Science dry-run, fingerprint yakalama, tüm kataloğa basmadan onay |
-| **2.0** | Script kancası, çok hesaplı kimlik dosyası, imzalı ikili. Telemetri yok (isteğe bağlı olmadan) |
+| **1.2** | `ui/` modülleri, async görevler, keyring, modern tema |
+| **1.3 şimdi** | Async IPC/quest/science, sıralı arama, açık/koyu/sistem tema, isteğe bağlı katalog güncellemesi, HTTP retry, redakte günlük + tanılama, %60 kapsam |
+| **1.4** | Asset tarayıcısı, görsel yükleme yardımcısı, resmi Discord’da ek slot uyarısı |
+| **2.0** | Çok hesaplı kimlik dosyası, imzalı ikili. Telemetri yok (isteğe bağlı olmadan) |
 
 Kapsam dışı: v20 çerez, token barındırma, bot token modu, sahte Staff rozeti.
 

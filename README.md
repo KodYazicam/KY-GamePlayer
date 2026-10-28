@@ -17,6 +17,7 @@
   <img src="https://img.shields.io/badge/license-KYAL--1.0-7C3AED?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/author-KodYazicam-0D0D0D?style=flat-square" alt="Author">
   <a href="https://github.com/KodYazicam/KY-GamePlayer/actions"><img src="https://img.shields.io/github/actions/workflow/status/KodYazicam/KY-GamePlayer/ci.yml?style=flat-square" alt="CI"></a>
+  <img src="https://img.shields.io/badge/coverage-63%25%20%C2%B7%20gate%2060%25-2ea44f?style=flat-square" alt="Coverage">
 </p>
 
 <p align="center">
@@ -25,8 +26,8 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot-games.png" alt="Games tab — catalog, RPC editor and presence preview" width="49%">
-  <img src="docs/screenshot-badges.png" alt="Badges tab" width="49%">
+  <img src="docs/screenshot-games.png" alt="Games tab — dark theme, compact catalog and presence editor" width="49%">
+  <img src="docs/screenshot-games-light.png" alt="Games tab — light theme" width="49%">
 </p>
 <p align="center"><em>Rendered from the real UI with synthetic demo data.</em></p>
 
@@ -95,14 +96,17 @@ Long form:
 
 ## Feature surface
 
-| Area | What ships in 1.2.0 |
+| Area | What ships in 1.3.0 |
 | --- | --- |
-| Shell | Dark theme (design tokens + app-wide style sheet), tray, single instance, TR/EN, autostart (Linux/Windows/macOS) |
+| Shell | Dark / light / system appearance (design tokens + app-wide style sheet), tray, single instance, TR/EN, autostart (Linux/Windows/macOS) |
 | Lock | Harvest token from Discord/Vesktop Local Storage; optional paste; guild membership required |
-| Games | Search, theme/store/OS/icon/cover/overlay filters, favorites, playlist, exclude, weights |
+| Games | Compact catalog, ranked search, scope chips, filters, favorites, playlist, exclude, weights |
 | RPC | Playing/Streaming/Listening/Watching/Custom/Competing, assets, party, buttons xor secrets, flags |
+| Editor | Five sub-tabs (Presence / Advanced / Automation / Science / Log) so the common path stays short |
+| Catalog | Opt-in official `games.json` update with diff preview and rollback; writes user config only |
 | Detect | Process scan every 5 s; Proton/Wine exe tokens; PID fill |
-| Responsiveness | REST, credential harvest and process scans run off the GUI thread (`ui/tasks.py`) |
+| Responsiveness | IPC connect, REST, credential harvest and process scans run off the GUI thread; queued UI callbacks |
+| Resilience | Retries 429 + transient 500/502/503/504, honours `Retry-After`; POST retry is opt-in |
 | Secrets | Keyring (Secret Service / Keychain) on Linux/macOS; DPAPI on Windows |
 | Random | Weighted pool, no-repeat N, countdown, Ctrl+R |
 | Extras | Up to 8 extra IPC connections (Vesktop may stack; official Discord shows one Playing) |
@@ -112,8 +116,8 @@ Long form:
 | Badges | HypeSquad apply/leave; owned flags; gift/Nitro catalog |
 | Privacy | Private / limited / public cards |
 | Account | Custom status, clan/primary guild, entitlement count |
-| Editor | Per-game templates, Spotify-style Listening helper, script hooks (`.py` returning `ActivityConfig`) |
-| Settings | Help tab: log level, credential harvest on/off, membership lock timeout; window geometry persisted |
+| Logging | Rotating, redacted `kodyazar.log` (2 MB × 3); copy diagnostics from the Help tab |
+| Settings | Help tab: appearance, log level, credential harvest on/off, lock timeout, rate-limit stats; window geometry persisted |
 | Packaging | `kurulum.bat` / `windows.bat`; onedir + optional onefile PyInstaller; macOS `.app`; `catalog_sync` CLI |
 
 ---
@@ -301,10 +305,10 @@ Credentials: `science_state.json` (Windows DPAPI `KY1\x00` prefix; on Linux/macO
 | --- | --- |
 | `science_state.json` | **High** — token, cookie, analytics in the OS keyring; fingerprint in the file |
 | `profiles.json` | RPC presets, favorites, settings (no token) |
-| `logs/kodyazar-YYYYMMDD.log` | IPC / quest / science status |
+| `logs/kodyazar.log` | Redacted IPC / quest / science status; rotates at 2 MB, keeps `.1`–`.3` |
 | `cdn/` | Downloaded PNG icons |
 
-Schemas: [`docs/data.md`](docs/data.md).
+Schemas and redaction rules: [`docs/data.md`](docs/data.md). **Help → Copy diagnostics** builds a report with version, OS, Qt, catalog size, safe settings and a redacted log tail.
 
 ---
 
@@ -317,8 +321,11 @@ Schemas: [`docs/data.md`](docs/data.md).
 | Ctrl+L | Clear activity |
 | Ctrl+P | Pin extra IPC slot |
 | Ctrl+D | Scan processes |
-| Ctrl+F | Toggle favorite |
+| Ctrl+F | Focus catalog search |
+| Escape | Clear the search query (or focus it) |
+| Ctrl+Shift+F | Toggle favorite for the selected game |
 | Ctrl+Shift+S | Fill store button from SKU |
+| F1 | Shortcut cheat-sheet |
 
 ---
 
@@ -349,8 +356,9 @@ Full checklist: [`docs/roadmap.md`](docs/roadmap.md). Short version:
 | Stage | Goal |
 | --- | --- |
 | **1.1.0** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, optional one-file EXE, settings block (log level / harvest / lock timeout), persisted window geometry, per-game templates, Listening helper, script hooks, science dry-run + 2000-game confirm cap, fingerprint capture button, rate-limit dashboard, social preview. |
-| **1.2.0 now** | `MainWindow` split into `ky_gameplayer/ui/`, blocking REST/harvest moved off the GUI thread, modern theme, keyring on Linux/macOS, per-game search cache, CI on 3.14 + lint + offscreen Qt + Windows. |
-| **1.3** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack, quest types beyond video/play/stream |
+| **1.2.0** | `MainWindow` split into `ky_gameplayer/ui/`, blocking REST/harvest moved off the GUI thread, modern theme, keyring on Linux/macOS, per-game search cache, CI on 3.14 + lint + offscreen Qt + Windows. |
+| **1.3.0 now** | Non-blocking IPC connect and quest/science workers, ranked search + shortcuts, light/dark/system themes, opt-in catalog update, redacted rotating logs + diagnostics, HTTP retry hardening, 60 % coverage gate. |
+| **1.4** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack, quest types beyond video/play/stream |
 | **2.0** | Multi-account identity files, signed binaries. **No** telemetry unless opt-in |
 
 Out of scope: v20 cookie decrypt, hosting tokens, bot-token mode, fake Staff badges.
@@ -364,7 +372,9 @@ python -m compileall -q ky_gameplayer run.py tests
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test) and a Windows job. Tests cover activity JSON, catalog load/sync and search, science helpers and dry-run, quest parse, profiles and game templates, detect matching, script hooks, rate-limit counters, translations and keyring storage.
+GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test), a Windows job and a Linux coverage job. The suite is 180 tests and covers activity JSON, catalog load/sync/search ranking, IPC framing, quest/science workers, credential helpers, HTTP retry, profiles and templates, detect matching, script hooks, rate-limit counters, themes, diagnostics, translations and keyring storage.
+
+Coverage uses a **60 %** line gate (currently 63 % on CI, 64 % locally) and uploads `coverage.xml`. HTTP tests use a local `ThreadingHTTPServer`; no test needs Discord, network access or a real token.
 
 ---
 

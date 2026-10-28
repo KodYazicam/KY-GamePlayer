@@ -1,3 +1,69 @@
+## v1.3.0 — responsive UI, resilience and diagnostics
+
+1.3 is about the seconds you used to lose: connecting, searching, opening quests
+and waiting for a blocked window. The Games tab is shorter, the editor is split
+into sub-tabs, appearance is selectable and the log can no longer grow forever.
+
+### UI and Games
+
+- Non-blocking Discord IPC connect: socket candidates are only stat'ed, open +
+  handshake run on a worker thread, and `disconnect()` no longer joins the reader
+  on the GUI thread ([#13](https://github.com/KodYazicam/KY-GamePlayer/issues/13)).
+- Quest harvest/REST, client lists and PID scans moved off the GUI thread;
+  `last_auth` and live-client cache bugs fixed; deterministic shutdown
+  ([#14](https://github.com/KodYazicam/KY-GamePlayer/issues/14)).
+- Compact catalog: scope chips, filters folded away, selected-game card and
+  technical details on demand. The right side now uses **Presence / Advanced /
+  Automation / Science / Log** sub-tabs instead of one long form
+  ([#27](https://github.com/KodYazicam/KY-GamePlayer/issues/27)).
+- Ranked search (exact → prefix → word → substring → alias/SKU/exe), elided rows,
+  `Ctrl+F` focus search, `Escape` clear, `Ctrl+Shift+F` favourite, `F1` cheat-sheet
+  and an empty state ([#15](https://github.com/KodYazicam/KY-GamePlayer/issues/15)).
+
+### Appearance
+
+- Light, dark and **system** themes selected on the Help tab and persisted in
+  `profiles.json`; the game list and presence preview now use the same tokens as
+  the rest of the window, and switches apply without a restart
+  ([#16](https://github.com/KodYazicam/KY-GamePlayer/issues/16)).
+- Fixed tab labels that could inherit white `BrightText` on the light surface.
+
+### Catalog
+
+- **Games → Update catalog** downloads the official `games.json` only on request,
+  validates it, shows added/removed/changed counts and writes
+  `config_dir()/games.json`. The bundled catalog stays read-only and the previous
+  file is kept as `games.json.bak` for **Restore**
+  ([#26](https://github.com/KodYazicam/KY-GamePlayer/issues/26)).
+
+### Reliability
+
+- HTTP retries for idempotent requests on 429 and transient 500/502/503/504,
+  capped exponential backoff + jitter and `Retry-After` in seconds or HTTP-date
+  form. POST/PATCH retry 429 automatically; 5xx/transport retries are opt-in via
+  `retry_non_idempotent=True` ([#18](https://github.com/KodYazicam/KY-GamePlayer/issues/18)).
+- Rotating log at `logs/kodyazar.log` (2 MB × 3), redaction for token/cookie/
+  authorization-shaped strings in both file and in-memory views, and a Help-tab
+  **Copy diagnostics** report with version, OS, Qt, catalog size, safe settings
+  and a redacted tail ([#17](https://github.com/KodYazicam/KY-GamePlayer/issues/17)).
+
+### Tests and CI
+
+- 180 tests: HTTP retry against a local `ThreadingHTTPServer`, IPC framing,
+  quest/science worker paths, auth helpers, model/search ranking, theme tokens,
+  diagnostics and offscreen UI smoke tests.
+- New Linux coverage job with a **60 %** line gate (`coverage.xml` artifact);
+  current CI total is 63 % (64 % locally with the offscreen suite).
+- No test requires external network access, a Discord client or real credentials.
+
+### Upgrade notes
+
+- No data migration. Default appearance stays **dark**; switch on Help → Appearance.
+- Old `kodyazar-YYYYMMDD.log` files are no longer written. New logs live in
+  `kodyazar.log` with `.1`–`.3` rotations.
+- `pip install -r requirements.txt` again only if your environment is missing
+  `keyring` from 1.2.
+
 ## v1.2.0 — UI, security and CI
 
 The window, the secrets file and the pipeline got the 1.2 treatment. No feature was removed.

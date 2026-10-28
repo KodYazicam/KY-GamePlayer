@@ -2,7 +2,21 @@
 
 Mirrored in the root README. Status is the contract for contributors.
 
-Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.2.0**.
+Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.3.0**.
+
+## Shipped — 1.3.0 (responsive UI, resilience, diagnostics)
+
+- [x] Non-blocking IPC connect; cheap socket availability check; disconnect no longer joins the reader on the GUI thread
+- [x] Quest harvest/REST, client refresh and PID scans off the GUI thread; fixed science `last_auth`; deterministic shutdown
+- [x] Ranked search (exact → prefix → word → substring), elided rows, `Ctrl+F` / `Escape` / `Ctrl+Shift+F` / `F1`
+- [x] Light / dark / system appearance, tokenised list + preview painting, persisted `theme_mode`
+- [x] Compact catalog with scope chips and five editor sub-tabs (Presence / Advanced / Automation / Science / Log)
+- [x] Opt-in official `games.json` update with diff preview, validation and rollback (Games tab + CLI)
+- [x] HTTP retries for idempotent 5xx/429 with capped backoff, `Retry-After` seconds/date and POST opt-in
+- [x] Rotating redacted log (2 MB × 3) and Help-tab diagnostics report
+- [x] Coverage job in CI with a 60 % gate and `coverage.xml` artifact
+- [x] 180 tests, including local HTTP retry, IPC framing, quest/science workers and offscreen UI
+- [x] Dark + light README screenshots rendered from the real UI with synthetic demo data
 
 ## Shipped — 1.2.0 (UI, security, CI)
 
@@ -25,24 +39,19 @@ Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.2.0**.
 - [x] Settings block on the Help tab: log level, harvest on/off, lock timeout
 - [x] Persist window size/splitter in `profiles.json` `settings`
 
-## Next — 1.3 (RPC quality)
+## Also shipped — quests and science
 
-- [x] Opt-in official `games.json` update with preview, validation and rollback (Games tab + CLI)
-- [x] HTTP retries for idempotent 5xx/429 with capped backoff, `Retry-After` seconds/date and POST opt-in
-- [x] Coverage job in CI with a 60 % gate and `coverage.xml` artifact
-- [ ] Asset browser UI over the `DiscordRest.application_assets` call (REST part landed in 1.1.0)
-- [ ] Image upload helper (external URL only today)
-- [ ] Better extra-slot UX when the host client cannot stack activities (detect official vs Vesktop)
-- [x] Per-game default details/state templates (`game_templates` in `profiles.json`, identity tab)
-- [x] Spotify-style Listening helper (type 2) with album art URL (identity tab)
-
-## Later — quests and science
-
-- [ ] Quest type coverage if Discord adds tasks beyond video/play/stream
 - [x] Science dry-run (checkbox: build events, log them, skip the POST)
 - [x] Fingerprint capture button (“copy from Discord’s own disk state”)
 - [x] Rate-limit dashboard (HTTP/429/retry counters on the Help tab)
 - [x] Hard cap + confirm dialog before science source = all 24k games (cap 2000, engine-level)
+
+## Next — 1.4 (RPC quality)
+
+- [ ] Asset browser UI over the `DiscordRest.application_assets` call (REST part landed in 1.1.0)
+- [ ] Image upload helper (external URL only today)
+- [ ] Better extra-slot UX when the host client cannot stack activities (detect official vs Vesktop)
+- [ ] Quest type coverage if Discord adds tasks beyond video/play/stream
 
 ## Later — 2.0 (product)
 
@@ -64,7 +73,7 @@ Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.2.0**.
 
 1. Bugs that block Connect or lock → patch release
 2. Docs mismatches → same
-3. Catalog refresh tooling → 1.3
+3. Asset browser / extra-slot UX → 1.4
 4. Anything that POSTs more Discord routes → discuss ToS risk in the PR
 
 ## Verification before a release
@@ -103,8 +112,9 @@ python -m coverage xml
 ```
 
 CI has a dedicated Linux `coverage` job with the same commands and a **60 %**
-line-coverage gate; `coverage.xml` is uploaded as an artifact. The Qt-free
-matrix still runs on Python 3.11–3.14. HTTP retry tests use a local
+line-coverage gate; `coverage.xml` is uploaded as an artifact. The current total
+is 63 % on CI and 64 % locally with the offscreen suite. The Qt-free matrix
+still runs on Python 3.11–3.14. HTTP retry tests use a local
 `ThreadingHTTPServer` and never contact Discord.
 
 Tests must not require network access, a Discord client, or a real token.

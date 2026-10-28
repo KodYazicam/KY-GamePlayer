@@ -1,6 +1,6 @@
 # Features (complete)
 
-Every control that exists in 1.0.0. UI copy is listed in Turkish first (default language), then English.
+Every control that exists in 1.3.0. UI copy is listed in Turkish first (default language), then English.
 
 Related: [`architecture.md`](architecture.md), [`discord.md`](discord.md), [`data.md`](data.md).
 
@@ -244,8 +244,11 @@ Paints a Discord-like card: type prefix, large art, small badge, details/state, 
 | Ctrl+L | Clear RPC |
 | Ctrl+P | Pin extra slot |
 | Ctrl+D | Scan processes |
-| Ctrl+F | Toggle favorite |
+| Ctrl+F | Focus catalog search (select all) |
+| Escape | Clear the search query; if empty, focus the field |
+| Ctrl+Shift+F | Toggle favorite for the selected game |
 | Ctrl+Shift+S | Fill store button |
+| F1 | Shortcut cheat-sheet |
 
 ---
 
@@ -298,13 +301,24 @@ Enrollment blocked / access suspended flags from the list payload are logged.
 
 HTML how-to (8 steps), invite button, guild id. Text comes from `i18n.help_body`.
 
+| Control | What it does |
+| --- | --- |
+| **Görünüm / Appearance** | `Sistem` / `Koyu` / `Açık` (system / dark / light). Applies immediately to the window, dialogs, list and preview; persisted as `settings["theme_mode"]`. |
+| **Günlük düzeyi / Log level** | DEBUG / INFO / WARNING / ERROR. Updates the root logger and every handler. |
+| **Kimlik bilgilerini Discord'dan çek / Harvest credentials from Discord** | Turns automatic harvest on/off. Off means use the lock screen paste/import path. |
+| **Üyelik kilidi zaman aşımı / Membership lock timeout** | 5–120 s (`settings["lock_timeout"]`). |
+| Rate-limit line | HTTP request / 429 / retry counters since launch. |
+| **Tanılamayı kopyala / Copy diagnostics** | Copies a redacted report: version, OS, Python/Qt, catalog size, IPC availability, safe settings, recent events and log tail. |
+| **Günlük klasörünü aç / Open log folder** | Opens `cache_dir()/logs` (`kodyazar.log` + `.1`–`.3`, 2 MB each). |
+
 ---
 
 ## Non-UI features
 
-- Daily log file in cache
+- Rotating, redacting log (`kodyazar.log`, 2 MB × 3)
+- Redacted diagnostics report (Help tab)
 - Unhandled exception hook (KeyboardInterrupt quits cleanly)
 - High-DPI PassThrough
-- Dark Fusion palette (`#1e1f22` / `#5865f2`)
+- Dark / light / system Fusion palette with tokenised list + preview painting
 - Segoe UI 10 on Windows
 - `QT_LOGGING_RULES` hides qpa window/font spam
