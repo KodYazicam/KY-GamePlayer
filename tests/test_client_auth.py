@@ -84,8 +84,24 @@ class HelperTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.home_patch = mock.patch.object(client_auth, "_home", return_value=self.root)
         self.home_patch.start()
+        self.env_patch = mock.patch.dict(
+            "os.environ",
+            {
+                "XDG_CONFIG_HOME": str(self.root / ".config"),
+                "HOME": str(self.root),
+                "USERPROFILE": str(self.root),
+                "APPDATA": str(self.root / "AppData" / "Roaming"),
+                "LOCALAPPDATA": str(self.root / "AppData" / "Local"),
+            },
+        )
+        self.env_patch.start()
+        # Exercise the Linux/XDG discovery branch even on the Windows smoke job.
+        self.linux_patch = mock.patch.object(client_auth, "_win", return_value=False)
+        self.linux_patch.start()
 
     def tearDown(self) -> None:
+        self.linux_patch.stop()
+        self.env_patch.stop()
         self.home_patch.stop()
         self.tmp.cleanup()
 
@@ -271,11 +287,13 @@ class ProcessTests(unittest.TestCase):
     def test_clients_from_processes_and_sorting(self) -> None:
         from types import SimpleNamespace
 
+        from ky_gameplayer import ipc as ipc_mod
+
         process = SimpleNamespace(pid=7, name="Discord", cmdline="discord --flag", exe="/usr/bin/discord")
         with (
             mock.patch.object(client_auth, "list_processes", return_value=[process]),
             mock.patch.object(client_auth, "_pid_has_ipc", return_value=False),
-            mock.patch("ky_gameplayer.ipc.find_discord_ipc", return_value=None),
+            mock.patch.object(ipc_mod, "find_discord_ipc", return_value=None),
         ):
             clients = client_auth._clients_from_processes()
         self.assertEqual(len(clients), 1)
