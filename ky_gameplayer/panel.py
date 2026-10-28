@@ -470,13 +470,29 @@ class KodYazarPages(QWidget):
         self.lock_timeout.valueChanged.connect(
             lambda value: self.settings_changed.emit("lock_timeout", int(value))
         )
+        self.theme_box = QComboBox()
+        for key, mode in (
+            ("appearance_system", "system"),
+            ("appearance_dark", "dark"),
+            ("appearance_light", "light"),
+        ):
+            self.theme_box.addItem(t(key), mode)
+        self.theme_box.currentIndexChanged.connect(
+            lambda _idx: self.settings_changed.emit("theme_mode", self.theme_box.currentData())
+        )
         settings_grid = QGridLayout()
-        self._settings_grid_labels = [QLabel(t("settings_log_level")), QLabel(t("settings_lock_timeout"))]
+        self._settings_grid_labels = [
+            QLabel(t("settings_log_level")),
+            QLabel(t("settings_lock_timeout")),
+            QLabel(t("settings_appearance")),
+        ]
         settings_grid.addWidget(self._settings_grid_labels[0], 0, 0)
         settings_grid.addWidget(self.log_level_box, 0, 1)
         settings_grid.addWidget(self.harvest_box, 1, 0, 1, 2)
         settings_grid.addWidget(self._settings_grid_labels[1], 2, 0)
         settings_grid.addWidget(self.lock_timeout, 2, 1)
+        settings_grid.addWidget(self._settings_grid_labels[2], 3, 0)
+        settings_grid.addWidget(self.theme_box, 3, 1)
         layout.addLayout(settings_grid)
 
         self.rate_label = QLabel(t("rate_stats", requests=0, rate_limited=0, retries=0))
@@ -683,6 +699,12 @@ class KodYazarPages(QWidget):
         if hasattr(self, "_settings_grid_labels"):
             self._settings_grid_labels[0].setText(t("settings_log_level"))
             self._settings_grid_labels[1].setText(t("settings_lock_timeout"))
+            self._settings_grid_labels[2].setText(t("settings_appearance"))
+        if hasattr(self, "theme_box"):
+            self.theme_box.blockSignals(True)
+            for index, key in enumerate(("appearance_system", "appearance_dark", "appearance_light")):
+                self.theme_box.setItemText(index, t(key))
+            self.theme_box.blockSignals(False)
         self.rate_label.setText(t("rate_stats", requests=0, rate_limited=0, retries=0))
         if self._me is not None:
             self.set_account(self._me)

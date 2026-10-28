@@ -5,6 +5,7 @@ from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPainterPath, Q
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem
 
 from .games import Game
+from .ui.theme import tokens
 
 _NO_PARENT = QModelIndex()
 
@@ -74,7 +75,7 @@ class GameDelegate(QStyledItemDelegate):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._placeholder = QPixmap(32, 32)
-        self._placeholder.fill(QColor("#1e1f22"))
+        self._placeholder.fill(QColor(tokens().SURFACE_ALT))
         self._asked: set[str] = set()
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
@@ -83,15 +84,16 @@ class GameDelegate(QStyledItemDelegate):
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        theme = tokens()
         rect = option.rect.adjusted(6, 4, -6, -4)
         selected = bool(option.state & QStyle.StateFlag.State_Selected)
         hover = bool(option.state & QStyle.StateFlag.State_MouseOver)
         if selected:
-            painter.setBrush(QColor("#404249"))
+            painter.setBrush(QColor(theme.SELECTED))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(rect, 8, 8)
         elif hover:
-            painter.setBrush(QColor("#35373c"))
+            painter.setBrush(QColor(theme.HOVER))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(rect, 8, 8)
 
@@ -101,6 +103,7 @@ class GameDelegate(QStyledItemDelegate):
             return
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if not isinstance(icon, QPixmap) or icon.isNull():
+            self._placeholder.fill(QColor(theme.SURFACE_ALT))
             icon = self._placeholder
             if game.id not in self._asked:
                 self._asked.add(game.id)
@@ -123,7 +126,7 @@ class GameDelegate(QStyledItemDelegate):
         meta_font = QFont(option.font)
         meta_font.setPointSize(8)
 
-        painter.setPen(QColor("#f2f3f5") if selected else QColor("#dbdee1"))
+        painter.setPen(QColor(theme.TEXT if selected else theme.ROW_TEXT))
         painter.setFont(name_font)
         text_x = icon_rect.right() + 10
         text_width = max(20, rect.right() - text_x - 6)
@@ -131,7 +134,7 @@ class GameDelegate(QStyledItemDelegate):
         name = metrics.elidedText(game.name, Qt.TextElideMode.ElideRight, text_width)
         painter.drawText(text_x, rect.top() + 18, name)
 
-        painter.setPen(QColor("#949ba4"))
+        painter.setPen(QColor(theme.MUTED))
         painter.setFont(meta_font)
         meta = game.id
         if game.themes:

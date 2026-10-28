@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import QWidget
 
 from .activity import ActivityConfig
 from .games import Game
 from .i18n import t
+from .ui.theme import tokens
 
 
 def _type_prefix(activity_type: int, name: str) -> str:
@@ -70,11 +71,12 @@ class PresencePreview(QWidget):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#111214"))
+        theme = tokens()
+        painter.fillRect(self.rect(), QColor(theme.BG))
         card = self.rect().adjusted(8, 8, -8, -8)
         path = QPainterPath()
         path.addRoundedRect(card, 12, 12)
-        painter.fillPath(path, QColor("#1e1f22"))
+        painter.fillPath(path, QColor(theme.SURFACE))
 
         game_name = (self._game.name if self._game else None) or self._config.name or t("preview_game")
         status_line = _type_prefix(self._config.type, game_name)
@@ -83,20 +85,23 @@ class PresencePreview(QWidget):
         elif self._config.status_display_type == 2 and self._config.details:
             status_line = _type_prefix(self._config.type, self._config.details)
 
-        painter.setPen(QColor("#b5bac1"))
+        painter.setPen(QColor(theme.MUTED))
         font = QFont(self.font())
         font.setPointSize(8)
         font.setBold(True)
         font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 0.6)
         painter.setFont(font)
-        painter.drawText(card.adjusted(16, 12, -16, 0), Qt.AlignmentFlag.AlignLeft, status_line.upper())
+        status_text = QFontMetrics(font).elidedText(
+            status_line.upper(), Qt.TextElideMode.ElideRight, max(40, card.width() - 32)
+        )
+        painter.drawText(card.adjusted(16, 12, -16, 0), Qt.AlignmentFlag.AlignLeft, status_text)
 
         icon_box = card.adjusted(16, 40, 0, 0)
         icon_box.setWidth(72)
         icon_box.setHeight(72)
         icon_path = QPainterPath()
         icon_path.addRoundedRect(icon_box, 10, 10)
-        painter.fillPath(icon_path, QColor("#2b2d31"))
+        painter.fillPath(icon_path, QColor(theme.SURFACE_ALT))
         if not self._large.isNull():
             scaled = self._large.scaled(
                 icon_box.size(),
@@ -111,8 +116,8 @@ class PresencePreview(QWidget):
             badge = icon_box.adjusted(48, 48, 8, 8)
             badge.setWidth(28)
             badge.setHeight(28)
-            painter.setBrush(QColor("#1e1f22"))
-            painter.setPen(QColor("#1e1f22"))
+            painter.setBrush(QColor(theme.SURFACE))
+            painter.setPen(QColor(theme.SURFACE))
             painter.drawEllipse(badge.adjusted(-3, -3, 3, 3))
             small = self._small.scaled(
                 badge.size(),
@@ -126,31 +131,42 @@ class PresencePreview(QWidget):
             painter.setClipping(False)
 
         text_left = icon_box.right() + 14
+        text_width = max(40, card.right() - text_left - 16)
         y = icon_box.top() + 4
-        painter.setPen(QColor("#f2f3f5"))
+        painter.setPen(QColor(theme.TEXT))
         title = QFont(self.font())
         title.setPointSize(12)
         title.setBold(True)
         painter.setFont(title)
-        painter.drawText(text_left, y + 16, game_name)
+        painter.drawText(
+            text_left,
+            y + 16,
+            QFontMetrics(title).elidedText(game_name, Qt.TextElideMode.ElideRight, text_width),
+        )
         y += 22
 
         body = QFont(self.font())
         body.setPointSize(10)
         painter.setFont(body)
-        painter.setPen(QColor("#dbdee1"))
+        painter.setPen(QColor(theme.ROW_TEXT))
         if self._config.details:
-            painter.drawText(text_left, y + 16, self._config.details[:64])
+            details = QFontMetrics(body).elidedText(
+                self._config.details, Qt.TextElideMode.ElideRight, text_width
+            )
+            painter.drawText(text_left, y + 16, details)
             y += 18
         if self._config.state:
             party = ""
             if self._config.party_size and self._config.party_max:
                 party = f" ({self._config.party_size} of {self._config.party_max})"
-            painter.drawText(text_left, y + 16, f"{self._config.state[:48]}{party}")
+            state = QFontMetrics(body).elidedText(
+                f"{self._config.state}{party}", Qt.TextElideMode.ElideRight, text_width
+            )
+            painter.drawText(text_left, y + 16, state)
             y += 18
         elapsed = _elapsed_text(self._config)
         if elapsed:
-            painter.setPen(QColor("#b5bac1"))
+            painter.setPen(QColor(theme.MUTED))
             painter.drawText(text_left, y + 16, elapsed)
             y += 18
 
@@ -166,11 +182,14 @@ class PresencePreview(QWidget):
             r.setHeight(bh)
             bpath = QPainterPath()
             bpath.addRoundedRect(r, 6, 6)
-            painter.fillPath(bpath, QColor("#4e5058"))
-            painter.setPen(QColor("#f2f3f5"))
+            painter.fillPath(bpath, QColor(theme.SURFACE_HOVER))
+            painter.setPen(QColor(theme.TEXT))
             smallf = QFont(self.font())
             smallf.setPointSize(8)
             smallf.setBold(True)
             painter.setFont(smallf)
-            painter.drawText(r, Qt.AlignmentFlag.AlignCenter, button["label"][:16])
+            label = QFontMetrics(smallf).elidedText(
+                button["label"], Qt.TextElideMode.ElideRight, bw - 12
+            )
+            painter.drawText(r, Qt.AlignmentFlag.AlignCenter, label)
             bx += bw + 8
