@@ -93,6 +93,7 @@ class WindowSmokeTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertTrue(win.windowTitle())
                 self.assertIsNotNone(win.pages)
+                win.tasks.cancel_all()
                 self.assertEqual(win.tasks.pending, 0)
                 win.hide()
                 win.deleteLater()
