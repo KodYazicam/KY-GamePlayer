@@ -56,7 +56,7 @@ The app refuses the main UI unless `/users/@me/guilds` (or guild member) shows g
 
 ## Windows EXE / antivirus
 
-The release zip is an **unsigned PyInstaller folder**. Windows has never seen this publisher, so SmartScreen will warn. That is expected.
+The Windows release zip is an **unsigned PyInstaller folder**. Windows has never seen this publisher, so SmartScreen will warn. That is expected. The macOS `.app` is also unsigned/notarized, so Gatekeeper requires right-click → Open; Linux packages are unsigned archives.
 
 We published what VirusTotal actually said — not a fake “0/70” badge. Short version: zip 0/66, exe 3/65 (Microsoft `Wacatac.B!ml` plus two nameless heuristics). The sandbox dropped nothing and opened no network. The zip score is the container; Windows looks at the PE.
 

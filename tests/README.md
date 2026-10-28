@@ -49,6 +49,7 @@ python -m coverage report --fail-under=60
 | `test_theme.py` | design tokens, palette and theme application | Native platform rendering |
 | `test_qt_ui.py` | `TaskRunner`, model markers, compact Games panel, filters, sub-tabs, TR/EN, catalog swap | Real desktop display |
 | `test_diagnostics.py` | diagnostics report and redaction | Real log files |
+| `test_packaging.py` | version single-source, Linux launcher/desktop files, macOS bundle version, release job/checksum wiring | Native package builds |
 
 ## Adding a test
 

@@ -1,0 +1,26 @@
+# Maintained by packaging/linux/package-arch.sh; do not edit the generated copy.
+pkgname=kodyazar-client
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc="Discord Rich Presence and quest panel"
+arch=('x86_64')
+url="https://github.com/KodYazicam/KY-GamePlayer"
+license=('custom:KYAL-1.0')
+depends=('glibc' 'libglvnd' 'libxkbcommon' 'libxkbcommon-x11' 'dbus' 'fontconfig' 'freetype2' 'glib2' 'libx11' 'libxext' 'libxrender' 'libxcb' 'xcb-util-cursor')
+options=('!strip')
+source=()
+sha256sums=()
+
+package() {
+    local root="$startdir/../.."
+    install -d "$pkgdir/opt/kodyazar"
+    install -d "$pkgdir/usr/bin"
+    install -d "$pkgdir/usr/share/applications"
+    install -d "$pkgdir/usr/share/icons/hicolor/256x256/apps"
+    install -d "$pkgdir/usr/share/licenses/$pkgname"
+    cp -a "$root/dist/KodYazar/." "$pkgdir/opt/kodyazar/"
+    install -Dm755 "$root/packaging/linux/kodyazar" "$pkgdir/usr/bin/kodyazar"
+    install -Dm644 "$root/packaging/linux/kodyazar.desktop" "$pkgdir/usr/share/applications/kodyazar.desktop"
+    install -Dm644 "$root/assets/icon.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/kodyazar.png"
+    install -Dm644 "$root/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

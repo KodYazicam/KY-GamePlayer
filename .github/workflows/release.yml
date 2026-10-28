@@ -4,14 +4,20 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   windows:
+    name: Windows x64
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
 
@@ -35,48 +41,241 @@ jobs:
             throw "dist\KodYazar\KodYazar.exe missing"
           }
           Compress-Archive -Path "dist\KodYazar" -DestinationPath $name -Force
-          $hash = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower()
-          Set-Content -Encoding ascii -NoNewline -Path "$name.sha256" -Value "$hash  $name`n"
-          $exe = Get-Item dist\KodYazar\KodYazar.exe
-          $exeHash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
-          $zipItem = Get-Item $name
-          $lines = @(
-            "KodYazar Client ${{ github.ref_name }} — Windows hashes",
-            "",
-            "KodYazar.exe",
-            "  size    $($exe.Length)",
-            "  sha256  $exeHash",
-            "  virustotal  https://www.virustotal.com/gui/file/$exeHash",
-            "",
-            $name,
-            "  size    $($zipItem.Length)",
-            "  sha256  $hash",
-            "  virustotal  https://www.virustotal.com/gui/file/$hash",
-            ""
-          )
-          Set-Content -Encoding ascii -Path HASHES.txt -Value $lines
-          Get-Item dist\KodYazar\KodYazar.exe, $name | Format-Table Name, Length
-          Get-Content "$name.sha256"
-          Get-Content HASHES.txt
+          Get-Item $name | Format-Table Name, Length
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: KodYazar-Client-${{ github.ref_name }}-windows-x64
-          path: |
-            KodYazar-Client-${{ github.ref_name }}-windows-x64.zip
-            KodYazar-Client-${{ github.ref_name }}-windows-x64.zip.sha256
-            HASHES.txt
+          name: windows-x64
+          path: KodYazar-Client-${{ github.ref_name }}-windows-x64.zip
           if-no-files-found: error
 
-      - name: GitHub Release
+  macos-arm64:
+    name: macOS arm64
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt "pyinstaller>=6,<7"
+
+      - name: Build .app
+        run: |
+          ./packaging/macos/make-icns.sh
+          python -m PyInstaller --noconfirm --clean packaging/macos/KodYazar-macOS.spec
+          codesign --force --deep --sign - dist/KodYazar.app
+          codesign --verify --deep --strict dist/KodYazar.app
+
+      - name: Package zip
+        run: |
+          test -d dist/KodYazar.app
+          name="KodYazar-Client-${{ github.ref_name }}-macos-arm64.zip"
+          ditto -c -k --sequesterRsrc --keepParent dist/KodYazar.app "$name"
+          ls -lh "$name"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: KodYazar-Client-${{ github.ref_name }}-macos-arm64.zip
+          if-no-files-found: error
+
+  macos-x64:
+    name: macOS Intel x64
+    runs-on: macos-15-intel
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt "pyinstaller>=6,<7"
+
+      - name: Build .app
+        run: |
+          ./packaging/macos/make-icns.sh
+          python -m PyInstaller --noconfirm --clean packaging/macos/KodYazar-macOS.spec
+          codesign --force --deep --sign - dist/KodYazar.app
+          codesign --verify --deep --strict dist/KodYazar.app
+
+      - name: Package zip
+        run: |
+          test -d dist/KodYazar.app
+          name="KodYazar-Client-${{ github.ref_name }}-macos-x64.zip"
+          ditto -c -k --sequesterRsrc --keepParent dist/KodYazar.app "$name"
+          ls -lh "$name"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64
+          path: KodYazar-Client-${{ github.ref_name }}-macos-x64.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux x64 packages
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Qt runtime and packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 libxcb-cursor0 \
+            zstd
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt "pyinstaller>=6,<7"
+
+      - name: Build PyInstaller tree
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QT_QPA_PLATFORM: offscreen
+        run: pyinstaller --noconfirm --clean packaging/linux/KodYazar-linux.spec
+
+      - name: Build .deb
+        run: packaging/linux/package-deb.sh
+
+      - name: Build .rpm in Fedora container
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            fedora:latest \
+            bash -lc 'dnf install -y rpm-build python3 && packaging/linux/package-rpm.sh'
+
+      - name: Build generic tar.gz
+        run: packaging/linux/package-tar.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: |
+            dist/release/*.deb
+            dist/release/*.rpm
+            dist/release/*.tar.gz
+          if-no-files-found: error
+
+  arch:
+    name: Arch Linux x64
+    runs-on: ubuntu-22.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build in Arch container
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            archlinux:base-devel \
+            bash -lc '
+              set -euo pipefail
+              pacman -Syu --noconfirm --needed \
+                python python-pip libxcb libxkbcommon libxkbcommon-x11 \
+                libglvnd dbus fontconfig freetype2 glib2 libx11 libxext \
+                libxrender xcb-util-cursor
+              python -m venv /tmp/venv
+              /tmp/venv/bin/python -m pip install -U pip
+              /tmp/venv/bin/python -m pip install -r requirements.txt "pyinstaller>=6,<7"
+              useradd -m builder
+              chown -R builder:builder /workspace
+              su builder -c "cd /workspace && QT_QPA_PLATFORM=offscreen /tmp/venv/bin/pyinstaller --noconfirm --clean packaging/linux/KodYazar-linux.spec && packaging/linux/package-arch.sh"
+            '
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-x64
+          path: dist/release/*.pkg.tar.zst
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: [windows, macos-arm64, macos-x64, linux, arch]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify tag and version
         shell: bash
         run: |
-          gh release create "${{ github.ref_name }}" \
-            "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip" \
-            "KodYazar-Client-${{ github.ref_name }}-windows-x64.zip.sha256" \
-            HASHES.txt \
-            --title "KodYazar Client ${{ github.ref_name }}" \
-            --notes-file docs/release-notes.md
+          version=$(python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+          print(tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"])
+          PY
+          )
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match pyproject version $version" >&2
+            exit 1
+          fi
+          echo "releasing $GITHUB_REF_NAME ($version)"
+
+      - name: Checksums and HASHES.txt
+        shell: bash
+        run: |
+          cd release-assets
+          files=$(find . -maxdepth 1 -type f ! -name '*.sha256' ! -name 'HASHES.txt' -printf '%f\n' | sort)
+          if [ -z "$files" ]; then
+            echo "no release assets downloaded" >&2
+            exit 1
+          fi
+          for f in $files; do
+            sha256sum "$f" > "$f.sha256"
+          done
+          {
+            echo "KodYazar Client $GITHUB_REF_NAME - release hashes"
+            echo
+            echo "Verify a file with: sha256sum -c <file>.sha256"
+            echo
+            for f in $files; do
+              hash=$(sha256sum "$f" | awk '{print $1}')
+              size=$(stat -c%s "$f")
+              printf '%s  %s  (%s bytes)\n' "$hash" "$f" "$size"
+            done
+          } > HASHES.txt
+          ls -lh
+          cat HASHES.txt
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release-assets/* \
+              --verify-tag \
+              --title "KodYazar Client $GITHUB_REF_NAME" \
+              --notes-file docs/release-notes.md
+          fi

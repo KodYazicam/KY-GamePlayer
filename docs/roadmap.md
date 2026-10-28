@@ -2,7 +2,15 @@
 
 Mirrored in the root README. Status is the contract for contributors.
 
-Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.3.0**.
+Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.3.1**.
+
+## Shipped — 1.3.1 (cross-platform packages)
+
+- [x] Native Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch and generic Linux release artifacts
+- [x] One `publish` job with per-file SHA-256 and a combined `HASHES.txt`
+- [x] Linux install tree under `/opt/kodyazar`, `/usr/bin/kodyazar`, desktop entry and icon
+- [x] macOS `.app` version sourced from `pyproject.toml`; unsigned Gatekeeper note documented
+- [x] Packaging docs and install docs updated for every artifact
 
 ## Shipped — 1.3.0 (responsive UI, resilience, diagnostics)
 

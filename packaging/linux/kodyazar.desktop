@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=KodYazar Client
+Comment=Discord Rich Presence, quests and game catalog panel
+Exec=/usr/bin/kodyazar
+Icon=kodyazar
+Terminal=false
+Categories=Game;Utility;
+StartupNotify=true
+StartupWMClass=KodYazar Client
