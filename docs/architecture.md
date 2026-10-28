@@ -61,6 +61,7 @@ Tabs (order in code):
 | `layout.py` | header, tab shell, games splitter, action bars |
 | `forms.py` | RPC editor groups, `collect()` / `apply_config()` |
 | `games.py` | list model wiring, filters, favourites, random pool |
+| `catalog.py` | opt-in catalog download, diff confirmation, in-place reload, restore |
 | `presence.py` | IPC connect/frames, extra slots, assets, detection |
 | `profiles.py` | profile CRUD, settings, import/export |
 | `science_ui.py` | science farm, hooks, credential widgets |
@@ -72,7 +73,7 @@ Tabs (order in code):
 
 `TaskRunner` runs a callable on a daemon thread and emits `done` / `failed`; the signals are connected with `Qt.QueuedConnection`, so callbacks always execute on the GUI thread. Callback exceptions are logged, never propagated into the event loop. `cancel_all()` drops pending callbacks on shutdown.
 
-Used by `_refresh_account`, `_apply_status`, `_apply_clan`, `_pull_science_from_client`. The science client-name lookup (`list_running_clients`, ~75 ms process scan) is cached for 5 s.
+Used by `_refresh_account`, `_apply_status`, `_apply_clan`, `_pull_science_from_client`, catalog download/install/restore. The science client-name lookup (`list_running_clients`, ~75 ms process scan) is cached for 5 s.
 
 Other workers are unchanged: membership uses a daemon thread + `membership_ready`, science/quests use `QThread` workers, IPC has its own reader thread.
 

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .catalog_sync import bundled_catalog_path, effective_catalog_path
 from .detect import DetectedGame, ProcessIndex
 from .games import Game, GameCatalog
 from .images import ImageCache
@@ -26,6 +27,7 @@ from .profiles import ProfileStore
 from .quest_engine import QuestEngine
 from .science_worker import ScienceEngine
 
+from .ui.catalog import CatalogMixin
 from .ui.common import ExtraSlot
 from .ui.lock import LockMixin
 from .ui.tray import TrayMixin
@@ -42,7 +44,7 @@ from .ui.tasks import TaskRunner
 from .ui.theme import apply_theme
 
 
-class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsMixin, LayoutMixin, FormsMixin, GamesMixin, PresenceMixin, ProfilesMixin, ScienceMixin, QWidget):
+class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsMixin, CatalogMixin, LayoutMixin, FormsMixin, GamesMixin, PresenceMixin, ProfilesMixin, ScienceMixin, QWidget):
     membership_ready = Signal(object, object)
 
     def __init__(self, app_root: Path) -> None:
@@ -72,9 +74,16 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsM
         self._tray_usable = False
         self._tray_show: QAction | None = None
         self._tray_quit: QAction | None = None
-        from .paths import resource
-
-        self.catalog = GameCatalog.load(resource("games.json"))
+        self._catalog_busy = False
+        self._catalog_user_path = _config_dir() / "games.json"
+        self._catalog_path = effective_catalog_path(self._catalog_user_path)
+        try:
+            self.catalog = GameCatalog.load(self._catalog_path)
+        except Exception:
+            # A broken user catalog must never stop the app or hide the bundled fallback.
+            self._catalog_path = bundled_catalog_path()
+            self.catalog = GameCatalog.load(self._catalog_path)
+        self._catalog_source = "user" if self._catalog_path == self._catalog_user_path else "bundled"
         self.store = ProfileStore(_config_dir() / "profiles.json")
         geometry = self.store.settings().get("window_geometry")
         if isinstance(geometry, str) and geometry:
@@ -134,6 +143,8 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsM
 
         self._build()
         self._apply_style()
+        self._refresh_catalog_actions()
+        self._update_catalog_status()
         self._reload_list()
         last = self.store.last_game_id
         if last:

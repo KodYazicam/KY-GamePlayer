@@ -275,7 +275,7 @@ GitHub Actions: Python 3.11 / 3.12 / 3.13, PySide6 kurulmaz.
 
 **İki oyun birden?** Resmi Discord hayır. Vesktop/arRPC belki.
 
-**`games.json` güncel mi?** Yayın anındaki detectable dökümü. 1.1’de CDN’den yenileme planı var.
+**`games.json` güncel mi?** Yayın anındaki detectable dökümü. Arka planda kendiliğinden güncellenmez; **Oyun menüsü → Kataloğu güncelle** ile resmî liste indirilir, fark önizlenir ve onaylanırsa `config_dir()/games.json` atomik yazılır. Paket dosyası değişmez, önceki sürüm `games.json.bak` olarak kalır; **Yedeğe dön** ile geri alınır. CLI: `python -m ky_gameplayer.catalog_sync --check` / `--restore`.
 
 **VirusTotal 3 tespit — virüs mü?** Hayır diyecek kadar emin değiliz; evet diyecek kadar da değil. Üçü de aile adı olmayan ML/heuristic. Sandbox ağ ve drop görmedi. Paketlenmiş exe istemiyorsan `python run.py`.
 

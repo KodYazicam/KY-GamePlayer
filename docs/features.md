@@ -80,8 +80,10 @@ Splitter. Left = catalog. Right = RPC + science.
 | Weight 1–20 | Random-mode probability |
 | List | 52 px rows, rounded icon, name + id · first theme |
 | Meta box | Id, aliases, themes, OS, distributors, overlay/hook flags, SKUs |
+| Kataloğu güncelle / Update catalog | Explicit download of the official list, validation + diff preview, atomic write to `config/games.json` |
+| Yedeğe dön / Restore | Only visible when a `.bak` exists; restores it and reloads without restart |
 
-~24 314 games from `games.json`. Icons stream from CDN into `cache/cdn`.
+~24 314 games from `games.json`. Icons stream from CDN into `cache/cdn`. The packaged catalog is read-only; updates never overwrite it.
 
 ### Right: connection bar
 

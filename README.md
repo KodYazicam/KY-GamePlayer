@@ -390,11 +390,14 @@ Quick hits:
 
 **Does extra pin show two games?** Official Discord: no. Vesktop/arRPC: maybe.
 
-**Is `games.json` complete?** It is Discord’s detectable dump at ship time. Refresh any time:
+**Is `games.json` complete?** It is Discord’s detectable dump at ship time. Nothing updates in the background. Open **Games → Kataloğu güncelle / Update catalog** to download the official list, review the added/removed/changed preview and confirm. The update is written to your user config (`config_dir()/games.json`), never over the packaged file, and the previous catalog is kept as `games.json.bak`; **Yedeğe dön / Restore** switches back.
+
+The same flow is available without opening the window:
 
 ```bash
 python -m ky_gameplayer.catalog_sync --check   # compare, no write
-python -m ky_gameplayer.catalog_sync            # download + atomic replace (`.bak` kept)
+python -m ky_gameplayer.catalog_sync            # download + atomic write to user config (`.bak` kept)
+python -m ky_gameplayer.catalog_sync --restore  # restore games.json.bak
 ```
 
 **VirusTotal says 3 vendors flagged the exe. Is it malware?** We are not going to say “no” as a slogan. We will say what the report actually contains: three generic ML/heuristic labels, no family name, and a sandbox that did not drop files or open the network. If you do not want a packed binary, run `python run.py` from this tree.

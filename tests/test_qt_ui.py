@@ -6,6 +6,7 @@ module skips there and runs in the dedicated ``ui`` job (offscreen).
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import time
@@ -170,3 +171,34 @@ class WindowSmokeTests(unittest.TestCase):
         self.assertIn("diagnostics", report)
         self.assertIn("version:", report)
         self.assertNotIn(token, report)
+
+    def test_catalog_apply_switches_source_and_reloads_list(self) -> None:
+        from ky_gameplayer import window as window_module
+        from ky_gameplayer.games import GameCatalog
+        from ky_gameplayer.paths import app_root
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with (
+                mock.patch.object(window_module, "_config_dir", return_value=base / "cfg"),
+                mock.patch.object(window_module, "_cache_dir", return_value=base / "cache"),
+            ):
+                win = window_module.MainWindow(app_root())
+                try:
+                    target = win._catalog_user_path
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(
+                        json.dumps([{"id": "1", "name": "Alpha"}, {"id": "2", "name": "Beta"}]),
+                        encoding="utf-8",
+                    )
+                    win._apply_catalog(GameCatalog.load(target), target)
+                    self.assertEqual(win._catalog_source, "user")
+                    self.assertEqual(len(win.catalog.games), 2)
+                    self.assertIn("2", win.count_label.text())
+                    self.assertIn("Güncellendi", win.catalog_status.text())
+                    self.assertTrue(win.btn_catalog_restore.isHidden())
+                finally:
+                    win.tasks.cancel_all()
+                    win.hide()
+                    win.deleteLater()
+                    self.app.processEvents()
