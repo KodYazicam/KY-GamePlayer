@@ -26,9 +26,12 @@ class Game:
     overlay_warn: bool = False
     content_classification: dict[str, Any] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict)
+    _search_blob: str = field(init=False, repr=False, default="")
+    _distributors: tuple[str, ...] = field(init=False, repr=False, default=())
+    _os_list: tuple[str, ...] = field(init=False, repr=False, default=())
 
-    @property
-    def search_blob(self) -> str:
+    def __post_init__(self) -> None:
+        # Built once per game: filtering runs over 24k rows on every keystroke.
         parts = [self.name, self.id, *self.aliases, *self.themes]
         for sku in self.third_party_skus:
             dist = sku.get("distributor")
@@ -41,7 +44,18 @@ class Game:
             name = exe.get("name")
             if name:
                 parts.append(str(name))
-        return " ".join(parts).casefold()
+        self._search_blob = " ".join(parts).casefold()
+
+        self._distributors = tuple(
+            dict.fromkeys(str(sku["distributor"]) for sku in self.third_party_skus if sku.get("distributor"))
+        )
+        self._os_list = tuple(
+            dict.fromkeys(str(exe["os"]) for exe in self.executables if exe.get("os"))
+        )
+
+    @property
+    def search_blob(self) -> str:
+        return self._search_blob
 
     def icon_url(self, size: int = 128) -> str | None:
         if not self.icon_hash:
@@ -54,20 +68,10 @@ class Game:
         return f"{CDN_APP_ICONS.format(app_id=self.id, hash=self.cover_image_hash)}?size={size}"
 
     def distributors(self) -> list[str]:
-        seen: list[str] = []
-        for sku in self.third_party_skus:
-            dist = sku.get("distributor")
-            if dist and dist not in seen:
-                seen.append(str(dist))
-        return seen
+        return list(self._distributors)
 
     def os_list(self) -> list[str]:
-        seen: list[str] = []
-        for exe in self.executables:
-            os_name = exe.get("os")
-            if os_name and os_name not in seen:
-                seen.append(str(os_name))
-        return seen
+        return list(self._os_list)
 
 
 def _as_game(item: dict[str, Any]) -> Game | None:
