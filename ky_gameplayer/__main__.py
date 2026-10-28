@@ -9,12 +9,13 @@ from datetime import datetime
 os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.window=false;qt.qpa.fonts=false")
 
 from PySide6.QtCore import QTimer, Qt
-from PySide6.QtGui import QColor, QFont, QIcon, QPalette
+from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from .brand import APP_NAME, APP_TITLE
 from .instance import claim, wire
 from .paths import app_root, log_dir
+from .ui.theme import apply_theme
 from .window import MainWindow
 
 
@@ -65,20 +66,7 @@ def main() -> int:
     app.setStyle("Fusion")
     if sys.platform == "win32":
         app.setFont(QFont("Segoe UI", 10))
-    palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window, QColor("#1e1f22"))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor("#f2f3f5"))
-    palette.setColor(QPalette.ColorRole.Base, QColor("#111214"))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#2b2d31"))
-    palette.setColor(QPalette.ColorRole.Text, QColor("#f2f3f5"))
-    palette.setColor(QPalette.ColorRole.Button, QColor("#2b2d31"))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#f2f3f5"))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#5865f2"))
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#111214"))
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#f2f3f5"))
-    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#6d6f78"))
-    app.setPalette(palette)
+    apply_theme(app)
     lock = claim(app)
     if lock is None:
         from .i18n import t

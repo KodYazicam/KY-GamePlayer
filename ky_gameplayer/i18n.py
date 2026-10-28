@@ -571,6 +571,10 @@ def _load() -> None:
         "log_setting": ("AYAR {setting}={value}", "SETTING {setting}={value}"),
         "status_harvest_off": ("Kimlik çekme kapalı (Ayarlar sekmesi).", "Credential harvest is off (Settings)."),
         "log_harvest_off": ("HARVEST kapalı", "HARVEST off"),
+        "status_pulling": ("Discord'dan kimlik bilgileri alınıyor…", "Pulling credentials from Discord…"),
+        "status_account_err": ("Hesap bilgisi alınamadı: {message}", "Could not load account: {message}"),
+        "status_custom_err": ("Durum ayarlanamadı: {message}", "Could not set status: {message}"),
+        "status_clan_err": ("Clan ayarlanamadı: {message}", "Could not set clan: {message}"),
     }
     for key, (a, b) in pairs.items():
         tr[key] = a
