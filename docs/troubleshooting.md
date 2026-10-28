@@ -39,7 +39,7 @@ Token rejected or missing cookie. Pull from client again. Analytics token refres
 
 ## Science 204 but hours do not move
 
-Need a real `executable_fingerprint` from Discord’s own detect. Launch an actual catalog game with Discord open, then **Açık client’tan al**. Without fingerprint some counters ignore the packets. Rate limits (429) are retried; huge batches look more bot-like — keep batch ≤ 20 and delay ≥ 0.8 s.
+Need a real `executable_fingerprint` from Discord’s own detect. Launch an actual catalog game with Discord open, then **Açık client’tan al**. Without fingerprint some counters ignore the packets. Transient 429/5xx responses are retried with backoff; huge batches look more bot-like — keep batch ≤ 20 and delay ≥ 0.8 s.
 
 ## Quests stay at 0
 

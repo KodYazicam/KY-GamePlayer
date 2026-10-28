@@ -115,12 +115,91 @@ class ModelTests(unittest.TestCase):
         self.assertTrue(model.index(1).data(GameListModel.PlaylistRole))
         self.assertTrue(model.index(1).data(GameListModel.ExcludedRole))
 
+    def test_delegate_paints_states_icons_and_markers(self) -> None:
+        from PySide6.QtCore import QModelIndex, QRect, QSize
+        from PySide6.QtGui import QColor, QPainter, QPixmap
+        from PySide6.QtWidgets import QStyle, QStyleOptionViewItem
+
+        from ky_gameplayer.games import Game
+        from ky_gameplayer.model import GameDelegate, GameListModel
+
+        model = GameListModel()
+        model.reset_games(
+            [
+                Game(id="a", name="Alpha", themes=["Theme One"]),
+                Game(id="b", name="A very long game name that needs eliding"),
+            ]
+        )
+        model.set_markers({"a"}, {"a"}, {"a", "b"})
+        delegate = GameDelegate()
+        asked: list[object] = []
+        delegate.icon_needed.connect(asked.append)
+        option = QStyleOptionViewItem()
+        option.rect = QRect(0, 0, 260, 60)
+        option.font = self.app.font()
+        canvas = QPixmap(260, 60)
+        painter = QPainter(canvas)
+        try:
+            self.assertEqual(delegate.sizeHint(option, model.index(0)), QSize(260, 52))
+            delegate.paint(painter, option, model.index(0))
+            delegate.paint(painter, option, model.index(0))
+            self.assertEqual(len(asked), 1)
+            self.assertIs(asked[0], model.games()[0])
+
+            option.state |= QStyle.StateFlag.State_Selected
+            delegate.paint(painter, option, model.index(0))
+            option.state = QStyle.StateFlag.State_MouseOver
+            delegate.paint(painter, option, model.index(1))
+
+            icon = QPixmap(32, 32)
+            icon.fill(QColor("#336699"))
+            model.set_icon("a", icon)
+            delegate.paint(painter, option, model.index(0))
+            delegate.paint(painter, option, QModelIndex())
+        finally:
+            painter.end()
+
 
 @unittest.skipUnless(os.environ.get("KODYAZAR_UI_TESTS"), "set KODYAZAR_UI_TESTS=1 to build the window")
 class WindowSmokeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = _app()
+        # Never let a UI smoke test inspect the developer's Discord install or
+        # start a membership check against a real harvested token. Timers are
+        # disabled and HOME/XDG point at an empty temporary directory.
+        cls._tmp = tempfile.TemporaryDirectory()
+        home = Path(cls._tmp.name)
+        cls._env_patch = mock.patch.dict(
+            os.environ,
+            {
+                "HOME": str(home),
+                "USERPROFILE": str(home),
+                "XDG_CONFIG_HOME": str(home / ".config"),
+                "XDG_CACHE_HOME": str(home / ".cache"),
+                "APPDATA": str(home / "AppData" / "Roaming"),
+                "LOCALAPPDATA": str(home / "AppData" / "Local"),
+            },
+        )
+        cls._env_patch.start()
+        from ky_gameplayer import window as window_module
+
+        cls._membership_patch = mock.patch.object(
+            window_module.MainWindow, "_enforce_membership", return_value=None
+        )
+        cls._scan_patch = mock.patch.object(window_module.MainWindow, "_scan_running", return_value=None)
+        cls._ipc_patch = mock.patch.object(window_module, "find_discord_ipc", return_value=None)
+        cls._membership_patch.start()
+        cls._scan_patch.start()
+        cls._ipc_patch.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._ipc_patch.stop()
+        cls._scan_patch.stop()
+        cls._membership_patch.stop()
+        cls._env_patch.stop()
+        cls._tmp.cleanup()
 
     def test_main_window_builds_with_theme(self) -> None:
         from ky_gameplayer import window as window_module

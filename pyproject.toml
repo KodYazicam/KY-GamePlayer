@@ -25,3 +25,23 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "B"]
+
+[tool.coverage.run]
+source = ["ky_gameplayer"]
+omit = [
+  "ky_gameplayer/__main__.py",
+  "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
