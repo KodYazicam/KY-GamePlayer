@@ -22,3 +22,9 @@ profiles.json
 Thumbs.db
 desktop.ini
 *.spec.bak
+
+# coverage.py
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
