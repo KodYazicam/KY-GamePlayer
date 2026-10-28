@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from threading import Thread
 from typing import Any
 
 from PySide6.QtCore import QObject, QThread, Signal, Slot
@@ -37,6 +38,7 @@ class ScienceEngine(QObject):
         self._worker: _FarmWorker | None = None
         self.last_auth: ClientAuth | None = None
         self.preferred: RunningClient | None = None
+        self._analytics_busy = False
 
     @property
     def busy(self) -> bool:
@@ -93,17 +95,26 @@ class ScienceEngine(QObject):
         return auth
 
     def refresh_analytics(self) -> None:
+        """Refresh the analytics token off the GUI thread (network + disk)."""
         if not self.state.has_token:
             self.failed.emit(t("sci_no_token"))
             return
-        try:
-            self.state.fetched_at = 0
-            ensure_analytics(self.state, self.state_path)
-        except Exception as exc:
-            self.failed.emit(str(exc))
+        if self._analytics_busy:
             return
-        self.status.emit("sci_analytics", {})
-        self.state_changed.emit()
+        self._analytics_busy = True
+
+        def work() -> None:
+            try:
+                self.state.fetched_at = 0
+                ensure_analytics(self.state, self.state_path)
+                self.status.emit("sci_analytics", {})
+                self.state_changed.emit()
+            except Exception as exc:  # noqa: BLE001 - surfaced to the UI
+                self.failed.emit(str(exc))
+            finally:
+                self._analytics_busy = False
+
+        Thread(target=work, name="ky-science-analytics", daemon=True).start()
 
     def stop(self) -> None:
         self._cancel = True
@@ -173,7 +184,13 @@ class ScienceEngine(QObject):
             self.state.cookie = cookie
         if fingerprint:
             self.state.fingerprint = fingerprint
-        self.last_auth = self.last_auth
+        self.last_auth = ClientAuth(
+            client=label,
+            token=self.state.token,
+            cookie=self.state.cookie,
+            fingerprint=self.state.fingerprint,
+            analytics_token=self.state.analytics_token,
+        )
         self.harvested.emit(token, cookie, fingerprint, label)
         self.state_changed.emit()
 

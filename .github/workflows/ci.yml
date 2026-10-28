@@ -59,7 +59,7 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           KODYAZAR_UI_TESTS: "1"
-        run: python -m unittest tests.test_ipc tests.test_qt_ui -v
+        run: python -m unittest tests.test_ipc tests.test_quest_science tests.test_qt_ui -v
 
   windows:
     name: windows smoke

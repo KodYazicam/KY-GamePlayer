@@ -308,18 +308,30 @@ class ScienceMixin:
         self.btn_science_stop.setEnabled(busy)
 
     def _live_client_cached(self):
-        """Process scans cost ~75 ms; reuse the answer for a few seconds."""
+        """Return the cached scan and refresh it in the background (never block).
+
+        A process scan costs ~75 ms and used to run inside status refresh.
+        """
         now = time.monotonic()
         cached = getattr(self, "_live_client_cache", None)
-        if cached is not None and now - cached[0] < 5.0:
-            return cached[1]
-        try:
-            clients = list_running_clients()
-        except Exception:
-            clients = []
-        live = clients[0] if clients else None
-        self._live_client_cache = (now, live)
-        return live
+        stale = cached is None or now - cached[0] >= 5.0
+        if stale and not getattr(self, "_live_busy", False):
+            self._live_busy = True
+            self.tasks.submit(
+                list_running_clients,
+                on_done=self._apply_live_clients,
+                on_error=self._live_clients_failed,
+                name="live-clients",
+            )
+        return cached[1] if cached else None
+
+    def _apply_live_clients(self, clients) -> None:
+        self._live_busy = False
+        self._live_client_cache = (time.monotonic(), clients[0] if clients else None)
+        self._refresh_science_status()
+
+    def _live_clients_failed(self, _exc: BaseException) -> None:
+        self._live_busy = False
 
     def _on_science_progress(self, request_no: int, sent_ok: int, status: int, detail: str) -> None:
         self._log(key="log_science_packet", n=request_no, status=status, detail=detail)

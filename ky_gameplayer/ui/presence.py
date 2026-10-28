@@ -510,6 +510,21 @@ class PresenceMixin:
             self._run_science(reason=f"detect:{item.game.id}", games=[item.game])
 
     def _refresh_pid_list(self) -> None:
+        if getattr(self, "_pid_busy", False):
+            return
+        self._pid_busy = True
+        self.tasks.submit(
+            list_processes,
+            on_done=self._apply_pid_list,
+            on_error=self._pid_list_failed,
+            name="pids",
+        )
+
+    def _pid_list_failed(self, _exc: BaseException) -> None:
+        self._pid_busy = False
+
+    def _apply_pid_list(self, processes) -> None:
+        self._pid_busy = False
         current = int(self.pid.value())
         self.pid_box.blockSignals(True)
         self.pid_box.clear()
@@ -519,7 +534,7 @@ class PresenceMixin:
                 f"{item.game.name} ({item.process.pid})",
                 item.process.pid,
             )
-        for proc in list_processes()[:80]:
+        for proc in processes[:80]:
             label = proc.name or Path(proc.exe).name or str(proc.pid)
             self.pid_box.addItem(f"{label} ({proc.pid})", proc.pid)
         index = self.pid_box.findData(current)

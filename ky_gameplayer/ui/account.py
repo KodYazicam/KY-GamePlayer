@@ -10,12 +10,19 @@ from ..i18n import t as i18n
 
 class AccountMixin:
     def _refresh_clients(self) -> None:
-        if not hasattr(self, "client_box"):
+        if not hasattr(self, "client_box") or getattr(self, "_clients_busy", False):
             return
-        try:
-            self._clients = list_running_clients()
-        except Exception:
-            self._clients = []
+        self._clients_busy = True
+        self.tasks.submit(
+            list_running_clients,
+            on_done=self._apply_clients,
+            on_error=self._clients_failed,
+            name="clients",
+        )
+
+    def _apply_clients(self, clients) -> None:
+        self._clients_busy = False
+        self._clients = list(clients or [])
         self.client_box.blockSignals(True)
         current = self.client_box.currentData()
         self.client_box.clear()
@@ -28,6 +35,10 @@ class AccountMixin:
                 self.client_box.setCurrentIndex(idx)
         self.client_box.blockSignals(False)
         self._on_client_picked()
+
+    def _clients_failed(self, _exc: BaseException) -> None:
+        self._clients_busy = False
+        self._clients = []
 
     def _on_client_picked(self, *_args) -> None:
         pid = self.client_box.currentData() if hasattr(self, "client_box") else None

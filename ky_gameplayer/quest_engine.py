@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import time
+from threading import Thread
 from typing import Callable
 
 from PySide6.QtCore import QObject, QThread, Signal, Slot
@@ -31,6 +32,8 @@ class QuestEngine(QObject):
         self.preferred: RunningClient | None = None
         self.auto_enroll = True
         self.auto_claim = True
+        self._refreshing = False
+        self._mutating = False
 
     @property
     def busy(self) -> bool:
@@ -45,75 +48,100 @@ class QuestEngine(QObject):
         return rest
 
     def refresh(self) -> None:
-        try:
-            rest = self._client()
-        except Exception as exc:
-            self.failed.emit(str(exc))
+        """Fetch quests off the GUI thread; results arrive through queued signals."""
+        if self._refreshing:
             return
-        status, me = rest.me()
-        if status == 200 and isinstance(me, dict):
-            self.me.emit(me)
-        status, payload = rest.quests_me()
-        if status != 200:
-            message = payload.get("message") if isinstance(payload, dict) else str(payload)
-            self.failed.emit(t("quest_list_fail", status=status, message=message))
+        self._refreshing = True
+
+        def work() -> None:
+            try:
+                rest = self._client()
+                status, me = rest.me()
+                if status == 200 and isinstance(me, dict):
+                    self.me.emit(me)
+                status, payload = rest.quests_me()
+                if status != 200:
+                    message = payload.get("message") if isinstance(payload, dict) else str(payload)
+                    self.failed.emit(t("quest_list_fail", status=status, message=message))
+                    return
+                items = parse_quest_list(payload)
+                self.quests.emit(items)
+                blocked = "quest_ready_ok"
+                if isinstance(payload, dict):
+                    if payload.get("quest_enrollment_blocked_until"):
+                        blocked = "quest_enroll_block"
+                    if payload.get("quest_access_suspended_until"):
+                        blocked = "quest_suspended"
+                self.log.emit("quest_ready", {"n": len(items), "state_key": blocked})
+            except Exception as exc:  # noqa: BLE001 - reported through the signal
+                self.failed.emit(str(exc))
+            finally:
+                self._refreshing = False
+
+        Thread(target=work, name="ky-quest-refresh", daemon=True).start()
+
+    def _run_mutation(self, name: str, work: Callable[[], None]) -> None:
+        if self._mutating:
             return
-        items = parse_quest_list(payload)
-        self.quests.emit(items)
-        blocked = "quest_ready_ok"
-        if isinstance(payload, dict):
-            if payload.get("quest_enrollment_blocked_until"):
-                blocked = "quest_enroll_block"
-            if payload.get("quest_access_suspended_until"):
-                blocked = "quest_suspended"
-        self.log.emit("quest_ready", {"n": len(items), "state_key": blocked})
+        self._mutating = True
+
+        def runner() -> None:
+            try:
+                work()
+            except Exception as exc:  # noqa: BLE001 - reported through the signal
+                self.failed.emit(str(exc))
+            finally:
+                self._mutating = False
+
+        Thread(target=runner, name=name, daemon=True).start()
 
     def set_house(self, house_id: int) -> None:
-        try:
+        def work() -> None:
             rest = self._client()
             status, data = rest.hypesquad_join(house_id)
-        except Exception as exc:
-            self.failed.emit(str(exc))
-            return
-        names = {1: "Bravery", 2: "Brilliance", 3: "Balance"}
-        if status in (200, 204):
-            self.house.emit(house_id, names.get(house_id, str(house_id)))
-            self.log.emit("quest_house_ok", {"name": names.get(house_id)})
-            status, me = rest.me()
-            if status == 200 and isinstance(me, dict):
-                self.me.emit(me)
-        else:
-            message = data.get("message") if isinstance(data, dict) else str(data)
-            self.failed.emit(t("quest_house_fail", status=status, message=message))
+            names = {1: "Bravery", 2: "Brilliance", 3: "Balance"}
+            if status in (200, 204):
+                self.house.emit(house_id, names.get(house_id, str(house_id)))
+                self.log.emit("quest_house_ok", {"name": names.get(house_id)})
+                status, me = rest.me()
+                if status == 200 and isinstance(me, dict):
+                    self.me.emit(me)
+            else:
+                message = data.get("message") if isinstance(data, dict) else str(data)
+                self.failed.emit(t("quest_house_fail", status=status, message=message))
+
+        self._run_mutation("ky-quest-house", work)
 
     def leave_house(self) -> None:
-        try:
+        def work() -> None:
             rest = self._client()
             status, data = rest.hypesquad_leave()
-        except Exception as exc:
-            self.failed.emit(str(exc))
-            return
-        if status in (200, 204):
-            self.house.emit(0, t("quest_left"))
-            self.log.emit("quest_left_log", {})
-        else:
-            message = data.get("message") if isinstance(data, dict) else str(data)
-            self.failed.emit(t("quest_leave_fail", status=status, message=message))
+            if status in (200, 204):
+                self.house.emit(0, t("quest_left"))
+                self.log.emit("quest_left_log", {})
+            else:
+                message = data.get("message") if isinstance(data, dict) else str(data)
+                self.failed.emit(t("quest_leave_fail", status=status, message=message))
+
+        self._run_mutation("ky-quest-leave", work)
 
     def set_privacy(self, level: int) -> None:
-        try:
+        def work() -> None:
             rest = self._client()
             status, data = rest.set_privacy(level)
-        except Exception as exc:
-            self.failed.emit(str(exc))
-            return
-        labels = {1: t("privacy_private_log"), 2: t("privacy_limited_log"), 3: t("privacy_public_log")}
-        if status in (200, 204):
-            self.privacy.emit(level, labels.get(level, str(level)))
-            self.log.emit("quest_privacy_log", {"name": labels.get(level)})
-        else:
-            message = data.get("message") if isinstance(data, dict) else str(data)
-            self.failed.emit(t("quest_privacy_fail", status=status, message=message))
+            labels = {
+                1: t("privacy_private_log"),
+                2: t("privacy_limited_log"),
+                3: t("privacy_public_log"),
+            }
+            if status in (200, 204):
+                self.privacy.emit(level, labels.get(level, str(level)))
+                self.log.emit("quest_privacy_log", {"name": labels.get(level)})
+            else:
+                message = data.get("message") if isinstance(data, dict) else str(data)
+                self.failed.emit(t("quest_privacy_fail", status=status, message=message))
+
+        self._run_mutation("ky-quest-privacy", work)
 
     def stop(self) -> None:
         self._cancel = True
@@ -122,15 +150,11 @@ class QuestEngine(QObject):
         if self._busy:
             self.failed.emit(t("quest_busy"))
             return
-        try:
-            rest = self._client()
-        except Exception as exc:
-            self.failed.emit(str(exc))
-            return
         self._cancel = False
         self._busy = True
         worker = _QuestWorker(
-            rest,
+            None,
+            self.preferred,
             enroll=enroll and self.auto_enroll,
             claim=self.auto_claim,
             cancel=lambda: self._cancel,
@@ -174,16 +198,24 @@ class _QuestWorker(QObject):
 
     def __init__(
         self,
-        rest: DiscordRest,
+        rest: DiscordRest | None,
+        preferred: RunningClient | None,
         enroll: bool,
         cancel: Callable[[], bool],
         claim: bool = True,
     ) -> None:
         super().__init__()
         self.rest = rest
+        self.preferred = preferred
         self.enroll = enroll
         self.claim = claim
         self.cancel = cancel
+
+    def _open_rest(self) -> DiscordRest:
+        auth = harvest(self.preferred)
+        if not auth.token:
+            raise RuntimeError(t("quest_no_token"))
+        return DiscordRest(auth.token, auth.cookie)
 
     def _stream_key(self, quest_id: str) -> str:
         status, channels = self.rest.dm_channels()
@@ -257,6 +289,14 @@ class _QuestWorker(QObject):
 
     @Slot()
     def run(self) -> None:
+        try:
+            if self.rest is None:
+                self.rest = self._open_rest()
+            self._run()
+        except Exception as exc:  # noqa: BLE001 - surfaced to the UI
+            self.failed.emit(str(exc))
+
+    def _run(self) -> None:
         status, payload = self.rest.quests_me()
         if status != 200:
             message = payload.get("message") if isinstance(payload, dict) else str(payload)
