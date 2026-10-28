@@ -7,17 +7,17 @@ Discord payloads: [`../docs/discord.md`](../docs/discord.md).
 
 This folder is the **Python package**. Entry: `__main__.main` (also `python run.py` from the repo root). Console script: `kodyazar` (`pyproject.toml`).
 
-Version: `__init__.__version__` = `1.0.0`.
+Version: `__init__.__version__` = `1.3.0`.
 
 ## Boot
 
 ```
 __main__.py
-  logging → cache/logs/kodyazar-YYYYMMDD.log
-  QApplication (Fusion, dark palette, icon)
+  logging → cache/logs/kodyazar.log (2 MB × 3, redacted)
+  QApplication (Fusion, dark/light/system tokens, icon)
   instance.claim → QLocalServer "kodyazar-client-lock"
   window.MainWindow(app_root)
-    games.GameCatalog.load(resource("games.json"))
+    games.GameCatalog.load(config/games.json or resource("games.json"))
     profiles.ProfileStore(config/profiles.json)
     science_worker.ScienceEngine(config/science_state.json)
     quest_engine.QuestEngine
@@ -31,8 +31,12 @@ __main__.py
 
 | File | Owns | Do not put here |
 | --- | --- | --- |
-| `__main__.py` | Qt app, palette, signals, logging, exception hook | Widgets |
-| `window.py` | MainWindow: lock, tabs, games splitter, RPC form, timers, shortcuts | REST URL strings |
+| `__main__.py` | Qt app, theme bootstrap, logging, exception hook | Widgets |
+| `window.py` | MainWindow composition root; mixins in `ui/` | Widget layout/REST URLs |
+| `ui/` | window mixins, theme tokens, `TaskRunner`, compact games tab, catalog update, diagnostics | Core protocol code |
+| `logging_setup.py` | rotating redacting log handlers, level control | UI |
+| `diagnostics.py` | redacted bug-report report | Qt widgets |
+| `catalog_sync.py` | opt-in catalog download, validation, atomic write/restore | UI |
 | `panel.py` | House / badges / privacy / quests / account / help pages | IPC |
 | `brand.py` | `APP_TITLE`, guild id `1549516395010854912`, invite | Logic |
 | `i18n.py` | `STRINGS` tr/en, `t()` | New English-only UI copy |
@@ -43,7 +47,7 @@ __main__.py
 | `model.py` | `GameListModel`, `GameDelegate` (52 px rows) | Catalog JSON |
 | `store.py` | SKU → Steam/Epic/GOG/Xbox/… URLs, primary store button | HTTP |
 | `activity.py` | `ActivityConfig` dataclass + `build()` SET_ACTIVITY payload | Socket IO |
-| `ipc.py` | Unix socket + Windows named pipe, handshake, SET_ACTIVITY, ping | REST |
+| `ipc.py` | Unix socket + Windows named pipe, worker-thread connect, handshake, SET_ACTIVITY, ping | REST |
 | `preview.py` | `PresencePreview` paint of a Discord-like card | Network |
 | `images.py` | `QNetworkAccessManager` CDN cache | Token harvest |
 | `detect.py` | `ProcessIndex` maps exe basename → games | `/proc` walking |
@@ -58,7 +62,7 @@ __main__.py
 | `science_worker.py` | `ScienceEngine` + `_FarmWorker` QThread | Window layout |
 | `badges.py` | Flag bits, gift milestones, CDN badge hashes | REST |
 | `profiles.py` | `profiles.json` favorites/recents/playlist/weights/settings | Tokens |
-| `httputil.py` | `urllib` JSON, 429 retry, locale, timezone | Discord routes |
+| `httputil.py` | `urllib` JSON, 429 + transient 5xx retry, `Retry-After`, locale, timezone | Discord routes |
 
 ## Data flow for one “RPC güncelle”
 

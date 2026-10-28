@@ -40,7 +40,7 @@ Tabs (order in code):
 
 1. Rozet kontrol — HypeSquad cards (`panel.KodYazarPages.house_page`)
 2. Tüm rozetler — catalog + owned flags
-3. Oyun menüsü — splitter: catalog list | RPC editor
+3. Oyun menüsü — splitter: compact catalog | RPC editor with five sub-tabs (Presence / Advanced / Automation / Science / Log)
 4. Profil gizliliği
 5. Görevler
 6. Hesap
@@ -69,13 +69,31 @@ Tabs (order in code):
 | `theme.py` | design tokens, palette, style sheet |
 | `tasks.py` | `TaskRunner` (blocking work → GUI thread) |
 
+### Theme tokens
+
+`ui/theme.py` owns two frozen `Tokens` sets (`DARK`, `LIGHT`) and derives both the Qt palette and one application-wide style sheet from them. `apply_theme(mode)` resolves `system` / `dark` / `light`, applies the palette before the style sheet, and follows `QStyleHints.colorSchemeChanged` while `system` is selected. The setting lives in `profiles.json` `settings["theme_mode"]` and is restored before the window is shown.
+
+Custom-painted widgets (game delegate, presence preview) call `tokens()` instead of hardcoding colours; they repaint on a switch. `BrightText` follows `TEXT` as well as `WindowText`/`ButtonText`, because Qt styles may use it for tab labels. White is reserved for text on the accent colour.
+
+### Logging and diagnostics
+
+`__main__` calls `logging_setup.setup_logging()` before constructing the window:
+
+- target `cache_dir()/logs/kodyazar.log`;
+- `RotatingFileHandler` at 2 MB with three backups, so the directory stays bounded at roughly 8 MB;
+- `RedactingFormatter` masks token-shaped strings, `Authorization:` headers and `token=`/`cookie=`/`secret=` pairs before formatting;
+- a session-start line records app version, Python and platform;
+- the Help-tab log level calls `apply_level()`, which updates the root logger **and** every handler.
+
+`diagnostics.build_report()` adds version, OS, Python/Qt, catalog size, IPC availability, a whitelist of safe settings, the recent in-memory events and the last lines of the log. The whole report is passed through `redact()` again before it reaches the clipboard. **Copy diagnostics** and **Open log folder** live on the Help tab.
+
 ### Threading model
 
 `TaskRunner` runs a callable on a daemon thread and emits `done` / `failed`; the signals are connected with `Qt.QueuedConnection`, so callbacks always execute on the GUI thread. Callback exceptions are logged, never propagated into the event loop. `cancel_all()` drops pending callbacks on shutdown.
 
-Used by `_refresh_account`, `_apply_status`, `_apply_clan`, `_pull_science_from_client`, catalog download/install/restore. The science client-name lookup (`list_running_clients`, ~75 ms process scan) is cached for 5 s.
+Used by `_refresh_account`, `_apply_status`, `_apply_clan`, `_pull_science_from_client`, catalog download/install/restore, client refresh and PID scans. The science client-name lookup (`list_running_clients`, ~75 ms process scan) is cached for 5 s.
 
-Other workers are unchanged: membership uses a daemon thread + `membership_ready`, science/quests use `QThread` workers, IPC has its own reader thread.
+`DiscordIpc.connect()` also opens the transport and performs the handshake on a worker thread; `find_discord_ipc()` only stats candidate sockets, so a stale-but-listening pipe cannot freeze the GUI. `disconnect()` closes the socket first and joins with a short timeout. Membership uses a daemon thread + `membership_ready`, science/quests use `QThread` workers, and IPC has its own reader thread; all of them are stopped deterministically by `MainWindow.shutdown()`.
 
 ## Membership lock
 
@@ -148,7 +166,7 @@ Worker: `QThread` + `_FarmWorker`. Harvests token again at start. `ensure_analyt
 
 ## Quests
 
-`QuestEngine` harvests auth, lists quests, optionally enrolls, then:
+`QuestEngine` harvests auth and lists/enrolls on a `QThread`; results arrive through queued `log` / `failed` / `finished` signals. It then:
 
 - `WATCH_VIDEO*` → `POST /quests/{id}/video-progress` ~1 s ticks until target
 - `PLAY_ON_DESKTOP` / `STREAM_ON_DESKTOP` / `PLAY_ACTIVITY` → heartbeat every ~20 s with `stream_key` from a DM channel (`call:{channelId}:1`) or `call:{questId}:1`

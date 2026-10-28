@@ -1,6 +1,8 @@
 # Troubleshooting
 
-Logs: `cache_dir/logs/kodyazar-YYYYMMDD.log` ([`data.md`](data.md)). Never paste tokens.
+Logs: `cache_dir/logs/kodyazar.log` plus `.1`–`.3` rotations ([`data.md`](data.md)). They are redacted and capped at 2 MB each. Never paste tokens.
+
+For a bug report, use **Help → Copy diagnostics** (version, OS, Qt, catalog size, safe settings, redacted log tail). Review the result before posting; **Help → Open log folder** shows the files.
 
 ## Lock: “Discord açık değil veya token okunamadı”
 

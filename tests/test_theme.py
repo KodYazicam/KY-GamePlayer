@@ -85,11 +85,13 @@ class ApplyThemeTests(unittest.TestCase):
         theme.apply_theme(self.app, "light")
         palette = self.app.palette()
         self.assertEqual(palette.color(QPalette.ColorRole.Window).name(), theme.LIGHT.BG)
+        self.assertEqual(palette.color(QPalette.ColorRole.BrightText).name(), theme.LIGHT.TEXT)
         self.assertIn(theme.LIGHT.BG, self.app.styleSheet())
 
         theme.apply_theme(self.app, "dark")
         palette = self.app.palette()
         self.assertEqual(palette.color(QPalette.ColorRole.Window).name(), theme.DARK.BG)
+        self.assertEqual(palette.color(QPalette.ColorRole.BrightText).name(), theme.DARK.TEXT)
         self.assertIn(theme.DARK.BG, self.app.styleSheet())
 
 

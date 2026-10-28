@@ -367,6 +367,9 @@ def build_palette(t: Tokens) -> QPalette:
     palette.setColor(QPalette.ColorRole.Text, QColor(t.TEXT))
     palette.setColor(QPalette.ColorRole.Button, QColor(t.SURFACE))
     palette.setColor(QPalette.ColorRole.ButtonText, QColor(t.TEXT))
+    # QStyle may use BrightText for tab labels in document mode; the default
+    # is pure white, which disappears on the light surface.
+    palette.setColor(QPalette.ColorRole.BrightText, QColor(t.TEXT))
     palette.setColor(QPalette.ColorRole.Highlight, QColor(t.ACCENT))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
     palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(t.SURFACE_ALT))
