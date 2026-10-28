@@ -18,6 +18,7 @@ from ..store import game_store_links
 
 class GamesMixin:
     def _schedule_filter(self) -> None:
+        self._update_filter_badge()
         self._filter_timer.start()
 
     def _filter_bool(self, combo: QComboBox) -> bool | None:
@@ -27,6 +28,85 @@ class GamesMixin:
         if value == "no":
             return False
         return None
+
+    def _set_scope(self, value: str) -> None:
+        self._scope = value
+        button = self.scope_buttons.get(value)
+        if button is not None and not button.isChecked():
+            button.setChecked(True)
+        self._schedule_filter()
+
+    def _toggle_filters(self, checked: bool) -> None:
+        self.filter_drawer.setVisible(bool(checked))
+        self._update_filter_badge()
+
+    def _filter_combos(self) -> tuple[QComboBox, ...]:
+        return (
+            self.theme_filter,
+            self.dist_filter,
+            self.os_filter,
+            self.icon_filter,
+            self.cover_filter,
+            self.overlay_filter,
+        )
+
+    def _active_filter_count(self) -> int:
+        return sum(1 for combo in self._filter_combos() if combo.currentData() not in (None, "", "all"))
+
+    def _active_filter_summary(self) -> str:
+        return " · ".join(
+            combo.currentText()
+            for combo in self._filter_combos()
+            if combo.currentData() not in (None, "", "all")
+        )
+
+    def _update_filter_badge(self) -> None:
+        if not hasattr(self, "btn_filters"):
+            return
+        count = self._active_filter_count()
+        text = i18n("filters")
+        if count:
+            text = f"{text} · {count}"
+        self.btn_filters.setText(text)
+        summary = self._active_filter_summary()
+        if hasattr(self, "filter_summary"):
+            self.filter_summary.setText(summary or i18n("filters_none"))
+        self.btn_filters.setToolTip(summary or i18n("filters_tip"))
+        self.btn_filters.setProperty("active", bool(count))
+        style = self.btn_filters.style()
+        style.unpolish(self.btn_filters)
+        style.polish(self.btn_filters)
+
+    def _clear_filters(self) -> None:
+        for combo in self._filter_combos():
+            combo.blockSignals(True)
+            combo.setCurrentIndex(0)
+            combo.blockSignals(False)
+        self._update_filter_badge()
+        self._schedule_filter()
+
+    def _sync_markers(self) -> None:
+        if not hasattr(self, "model"):
+            return
+        self.model.set_markers(
+            set(self.store.favorites()),
+            set(self.store.playlist()),
+            set(self.store.excluded()),
+        )
+
+    def _set_selection_controls(self, enabled: bool) -> None:
+        if not hasattr(self, "btn_fav"):
+            return
+        for button in (self.btn_fav, self.btn_playlist, self.btn_exclude):
+            button.setEnabled(enabled)
+        self.weight_box.setEnabled(enabled)
+        if not enabled:
+            self.selection_name.setText(i18n("select_game"))
+            self.selection_meta.setText(i18n("select_game_hint"))
+
+    def _toggle_details(self, checked: bool) -> None:
+        self.details_panel.setVisible(bool(checked))
+        self.btn_details.setText(i18n("details_hide" if checked else "details_show"))
 
     def _reload_list(self) -> None:
         current_id = self._game.id if self._game else None
@@ -39,7 +119,7 @@ class GamesMixin:
             has_cover=self._filter_bool(self.cover_filter),
             overlay=self._filter_bool(self.overlay_filter),
         )
-        scope = self.list_scope.currentData()
+        scope = getattr(self, "_scope", "all")
         if scope == "favorites":
             allow = set(self.store.favorites())
             games = [game for game in games if game.id in allow]
@@ -54,9 +134,12 @@ class GamesMixin:
             allow = set(self.store.excluded())
             games = [game for game in games if game.id in allow]
         self.model.reset_games(games)
+        self._sync_markers()
         self.count_label.setText(i18n("games_count_filter", shown=len(games), n=len(self.catalog.games)))
         if hasattr(self, "empty_label"):
             self.empty_label.setVisible(not games)
+            self.list_view.setVisible(bool(games))
+        self._update_filter_badge()
         if current_id:
             row = self.model.index_for_id(current_id)
             if row >= 0:
@@ -79,6 +162,9 @@ class GamesMixin:
         game = self.catalog.get(game_id)
         if game is None:
             self._game = None
+            self._set_selection_controls(False)
+            self.selection_name.setText(i18n("custom_app", id=game_id))
+            self.selection_meta.setText(i18n("custom_app_hint"))
             self.game_meta.setPlainText(i18n("custom_app", id=game_id))
             self._update_preview()
             return
@@ -94,6 +180,7 @@ class GamesMixin:
     def _apply_game(self, game: Game) -> None:
         same = self._game is not None and self._game.id == game.id
         self._game = game
+        self._set_selection_controls(True)
         if same:
             self._update_preview()
             return
@@ -121,6 +208,9 @@ class GamesMixin:
         self._queue_icon(game)
 
     def _fill_game_meta(self, game: Game) -> None:
+        theme = f" · {game.themes[0]}" if game.themes else ""
+        self.selection_name.setText(game.name)
+        self.selection_meta.setText(f"{game.id}{theme}")
         lines = [
             f"{game.name}",
             f"ID: {game.id}",
@@ -310,6 +400,7 @@ class GamesMixin:
         on = self.store.toggle_favorite(self._game.id)
         self._refresh_fav_buttons()
         self._fill_game_meta(self._game)
+        self._schedule_filter()
         self._set_status(i18n("status_fav_on" if on else "status_fav_off", name=self._game.name))
 
     def _toggle_playlist(self) -> None:
@@ -318,6 +409,7 @@ class GamesMixin:
         on = self.store.toggle_playlist(self._game.id)
         self._refresh_fav_buttons()
         self._fill_game_meta(self._game)
+        self._schedule_filter()
         self._set_status(i18n("status_pl_on" if on else "status_pl_off", name=self._game.name))
 
     def _toggle_excluded(self) -> None:
@@ -326,6 +418,7 @@ class GamesMixin:
         on = self.store.toggle_excluded(self._game.id)
         self._refresh_fav_buttons()
         self._fill_game_meta(self._game)
+        self._schedule_filter()
         self._set_status(i18n("status_ex_on" if on else "status_ex_off", name=self._game.name))
 
     def _on_weight_changed(self, value: int) -> None:

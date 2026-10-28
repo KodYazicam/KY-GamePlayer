@@ -242,6 +242,8 @@ Every widget: [`docs/features.md`](docs/features.md).
 
 `games.json` is Discord’s detectable list (24 314 games, ~12.7 MB). Each row is an application id you handshake as `client_id`.
 
+The Games tab keeps the common path short: search, scope chips and the list, with filters and technical details folded away. The editor on the right is split into **Yayın / Presence**, **Gelişmiş / Advanced**, **Otomasyon / Automation**, **Bilim / Science** and **Günlük / Log** sub-tabs, so the presence basics are not buried in a 12-group form.
+
 Connect talks Discord RPC:
 
 - Windows `\\.\pipe\discord-ipc-0` … `-9`

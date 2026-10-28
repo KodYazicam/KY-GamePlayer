@@ -85,6 +85,13 @@ class FormsMixin:
         self.app_id.editingFinished.connect(self._on_app_id_entered)
         grid.addRow(i18n("row_app_id"), self.app_id)
         grid.addRow(i18n("row_activity_name"), self.activity_name)
+        grid.addRow("", self.auto_assets)
+        return box
+
+    def _identity_advanced_group(self) -> QGroupBox:
+        box = QGroupBox(i18n("grp_identity_advanced"))
+        self.grp_identity_advanced = box
+        grid = QFormLayout(box)
         grid.addRow(i18n("row_type"), self.activity_type)
         grid.addRow(i18n("row_status_display"), self.status_display)
         grid.addRow(i18n("row_stream"), self.stream_url)
@@ -94,7 +101,6 @@ class FormsMixin:
         pid_row.addWidget(self.btn_pid_refresh)
         pid_row.addWidget(self.btn_pid_self)
         grid.addRow("PID", pid_row)
-        grid.addRow("", self.auto_assets)
         grid.addRow("", self.template_box)
         helper_row = QHBoxLayout()
         helper_row.addWidget(self.btn_template_save)
@@ -125,8 +131,14 @@ class FormsMixin:
         ):
             self._watch(widget)
         grid.addRow(i18n("row_details"), self.details)
-        grid.addRow(i18n("row_details_url"), self.details_url)
         grid.addRow(i18n("row_state"), self.state)
+        return box
+
+    def _text_advanced_group(self) -> QGroupBox:
+        box = QGroupBox(i18n("grp_text_advanced"))
+        self.grp_text_advanced = box
+        grid = QFormLayout(box)
+        grid.addRow(i18n("row_details_url"), self.details_url)
         grid.addRow(i18n("row_state_url"), self.state_url)
         grid.addRow(i18n("row_emoji"), self.emoji_name)
         grid.addRow(i18n("row_emoji_id"), self.emoji_id)

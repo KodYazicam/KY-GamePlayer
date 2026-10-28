@@ -66,22 +66,22 @@ Splitter. Left = catalog. Right = RPC + science.
 
 ### Left: catalog
 
+The default view is deliberately short: search, scope chips, a filter button and the list. Filters and technical metadata stay out of the way until requested.
+
 | Control | What it does |
 | --- | --- |
-| Search | Tokens against name, id, alias, theme, exe, Steam/Epic/… sku |
-| Theme | 22 Discord themes or all |
-| Store | steam, epic, gog, uplay, xbox, microsoft, battlenet, google_play |
-| OS | linux / win32 / darwin (from executables) |
-| Icon / Cover / Overlay | has / missing / all |
-| Scope | Tüm liste, Favoriler, Son kullanılan, Playlist, Hariç tutulanlar |
+| Catalog status | `Paket kataloğu` (bundled) or `Güncellendi` (user catalog) + file date; tooltip shows the full path |
+| ⟳ / ↺ | Opt-in catalog download / restore the `.bak` without restarting |
+| Search | Tokens against name, id, alias, theme, exe, Steam/Epic/… sku; inline clear button |
+| Scope chips | Tümü, ★ Favori, Son, Liste, Gizli — one click, no combo box |
+| Filtreler / Filters | Closed by default. Shows the active count, a summary and **Temizle**; contains theme, store, OS, icon, cover and overlay |
+| List | 52 px rows, rounded icon, name + id · first theme. Row badges: ★ favourite, ♪ playlist, ⊘ excluded (row name dimmed) |
+| Selected-game card | Name, id + theme, favourite/playlist/exclude chips, random weight |
+| ▸ Teknik ayrıntılar | Expandable id, aliases, themes, OS, distributors, overlay/hook flags and SKUs |
 | ★ Favori | Toggle id in `profiles.json` `favorites` |
 | + Playlist | Toggle `playlist` |
-| Hariç tut | Toggle `excluded` (hidden from “all” unless you open that scope) |
+| Hariç tut | Toggle `excluded` (still visible in its own scope) |
 | Weight 1–20 | Random-mode probability |
-| List | 52 px rows, rounded icon, name + id · first theme |
-| Meta box | Id, aliases, themes, OS, distributors, overlay/hook flags, SKUs |
-| Kataloğu güncelle / Update catalog | Explicit download of the official list, validation + diff preview, atomic write to `config/games.json` |
-| Yedeğe dön / Restore | Only visible when a `.bak` exists; restores it and reloads without restart |
 
 ~24 314 games from `games.json`. Icons stream from CDN into `cache/cdn`. The packaged catalog is read-only; updates never overwrite it.
 
@@ -92,11 +92,22 @@ Splitter. Left = catalog. Right = RPC + science.
 | Bağlan / Connect | Handshake IPC with current application id |
 | RPC güncelle / Update RPC | `SET_ACTIVITY` with `ActivityConfig.build()` |
 | Temizle / Clear | `SET_ACTIVITY` activity `null` |
+| ⋯ | Menu with **JSON kopyala**, **Dışa aktar**, **İçe aktar** |
 | Kes / Disconnect | Close socket |
-| JSON kopyala | Clipboard of the activity object |
-| Dışa aktar / İçe aktar | `profiles.json` dump / merge |
 
 Status dot green when READY. Socket path shown (`\\.\pipe\discord-ipc-0` or Unix path).
+
+### Right: editor sub-tabs
+
+The editor is split so the common path is not a 12-group wall.
+
+| Tab | Contents |
+| --- | --- |
+| Yayın / Presence | **Temel** (application id, activity name, automatic assets) and **Metin** (details, state) |
+| Gelişmiş / Advanced | Identity/process, links + emoji, assets, timestamps, party, buttons, secrets, flags, cycle and schedule |
+| Otomasyon / Automation | Profiles, random mode, extra IPC slots, running-game detection |
+| Bilim / Science | Science farm, hook/credential controls and dry-run/status widgets |
+| Günlük / Log | Session log and clear button |
 
 ### Profiles
 

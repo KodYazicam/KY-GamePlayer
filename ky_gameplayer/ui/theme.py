@@ -315,6 +315,16 @@ def build_style_sheet(t: Tokens) -> str:
 
     QLabel#sectionTitle {{ font-size: 19px; font-weight: 700; }}
     QLabel#muted {{ color: {t.MUTED}; }}
+    QLabel#pill {{
+        background: {t.SURFACE_ALT};
+        border: 1px solid {t.BORDER};
+        border-radius: 9px;
+        color: {t.MUTED};
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+    }}
+    QLabel#gameTitle {{ font-size: 15px; font-weight: 700; }}
     QLabel#statusOn {{ color: {t.SUCCESS}; font-size: 16px; font-weight: 600; }}
     QLabel#statusOff {{ color: {t.DANGER}; font-size: 16px; font-weight: 600; }}
     QFrame#panelBlock {{
@@ -322,7 +332,30 @@ def build_style_sheet(t: Tokens) -> str:
         border: 1px solid {t.BORDER};
         border-radius: 12px;
         padding: 8px;
-    }}"""
+    }}
+    QFrame#selectionCard {{
+        background: {t.SURFACE};
+        border: 1px solid {t.BORDER};
+        border-radius: 10px;
+    }}
+    QFrame#filterDrawer {{
+        background: {t.SURFACE};
+        border: 1px solid {t.BORDER};
+        border-radius: 9px;
+    }}
+    QPushButton[chip="true"] {{
+        background: transparent;
+        color: {t.MUTED};
+        border: 1px solid {t.BORDER};
+        border-radius: 12px;
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 600;
+    }}
+    QPushButton[chip="true"]:hover {{ background: {t.SURFACE_HOVER}; color: {t.TEXT}; }}
+    QPushButton[chip="true"]:checked {{ background: {t.ACCENT}; border-color: {t.ACCENT}; color: #ffffff; }}
+    QPushButton[chip="true"][active="true"] {{ border-color: {t.ACCENT}; color: {t.TEXT}; }}
+    QPushButton[chip="true"][active="true"]:checked {{ color: #ffffff; }}"""
 
 
 def build_palette(t: Tokens) -> QPalette:

@@ -66,9 +66,8 @@ class LanguageMixin:
             self._tray_quit.setText(i18n("tray_quit"))
         self.games_title.setText(i18n("approved_games"))
         self.count_label.setText(i18n("games_count", n=len(self.catalog.games)))
-        self.btn_catalog_update.setText(i18n("catalog_update"))
         self.btn_catalog_update.setToolTip(i18n("catalog_update_tip"))
-        self.btn_catalog_restore.setText(i18n("catalog_restore"))
+        self.btn_catalog_restore.setToolTip(i18n("catalog_restore"))
         if not self._catalog_busy:
             self._refresh_catalog_actions()
             self._update_catalog_status()
@@ -91,16 +90,13 @@ class LanguageMixin:
             self.overlay_filter,
             {"all": i18n("filter_overlay_all"), "yes": i18n("filter_overlay_yes"), "no": i18n("filter_overlay_no")},
         )
-        self._retitle_combo(
-            self.list_scope,
-            {
-                "all": i18n("scope_all"),
-                "favorites": i18n("scope_favorites"),
-                "recents": i18n("scope_recents"),
-                "playlist": i18n("scope_playlist"),
-                "excluded": i18n("scope_excluded"),
-            },
-        )
+        for value, button in self.scope_buttons.items():
+            button.setText(i18n(f"scope_{value}_short"))
+            button.setToolTip(i18n(f"scope_{value}"))
+        self.btn_filters.setText(i18n("filters"))
+        self.btn_clear_filters.setText(i18n("filters_clear"))
+        self.btn_details.setText(i18n("details_hide" if self.btn_details.isChecked() else "details_show"))
+        self._update_filter_badge()
         self.btn_fav.setText(i18n("btn_fav"))
         self.btn_playlist.setText(i18n("btn_playlist"))
         self.btn_exclude.setText(i18n("btn_exclude"))
@@ -110,9 +106,15 @@ class LanguageMixin:
         self.btn_update.setText(i18n("btn_update"))
         self.btn_clear.setText(i18n("btn_clear"))
         self.btn_disconnect.setText(i18n("btn_disconnect"))
-        self.btn_copy.setText(i18n("btn_copy"))
-        self.btn_export.setText(i18n("btn_export"))
-        self.btn_import.setText(i18n("btn_import"))
+        self.btn_more.setToolTip(i18n("more_actions"))
+        self.menu_copy.setText(i18n("btn_copy"))
+        self.menu_export.setText(i18n("btn_export"))
+        self.menu_import.setText(i18n("btn_import"))
+        for index, key in enumerate(
+            ("subtab_presence", "subtab_advanced", "subtab_automation", "subtab_science", "subtab_log")
+        ):
+            if index < self.right_tabs.count():
+                self.right_tabs.setTabText(index, i18n(key))
         self.profile_caption.setText(i18n("profile"))
         self.btn_profile_save.setText(i18n("profile_save"))
         self.btn_profile_load.setText(i18n("profile_load"))
@@ -145,6 +147,7 @@ class LanguageMixin:
         self.btn_detect_now.setText(i18n("btn_scan"))
         self.btn_use_detect.setText(i18n("btn_use_detect"))
         self.grp_identity.setTitle(i18n("grp_identity"))
+        self.grp_identity_advanced.setTitle(i18n("grp_identity_advanced"))
         self.app_id.setPlaceholderText(i18n("ph_app_id"))
         self.activity_name.setPlaceholderText(i18n("ph_activity_name"))
         self.stream_url.setPlaceholderText(i18n("ph_stream"))
@@ -157,6 +160,7 @@ class LanguageMixin:
         self._form_label(self.status_display, "row_status_display")
         self._form_label(self.stream_url, "row_stream")
         self.grp_text.setTitle(i18n("grp_text"))
+        self.grp_text_advanced.setTitle(i18n("grp_text_advanced"))
         self.emoji_anim.setText(i18n("emoji_anim"))
         self.details.setPlaceholderText(i18n("ph_details"))
         self.details_url.setPlaceholderText(i18n("ph_details_url"))
@@ -273,6 +277,11 @@ class LanguageMixin:
             self._refresh_fav_buttons()
             self._fill_game_meta(self._game)
             self._fill_assets(self._game)
+        elif self.app_id.text().strip():
+            self.selection_name.setText(i18n("custom_app", id=self.app_id.text().strip()))
+            self.selection_meta.setText(i18n("custom_app_hint"))
+        else:
+            self._set_selection_controls(False)
         self._refresh_extra_list()
         self._refresh_random_countdown()
         self._replay_logs()

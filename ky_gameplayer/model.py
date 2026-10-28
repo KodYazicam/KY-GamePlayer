@@ -13,12 +13,18 @@ _NO_PARENT = QModelIndex()
 class GameListModel(QAbstractListModel):
     GameRole = Qt.ItemDataRole.UserRole
     IdRole = Qt.ItemDataRole.UserRole + 1
+    FavoriteRole = Qt.ItemDataRole.UserRole + 2
+    PlaylistRole = Qt.ItemDataRole.UserRole + 3
+    ExcludedRole = Qt.ItemDataRole.UserRole + 4
 
     def __init__(self) -> None:
         super().__init__()
         self._games: list[Game] = []
         self._icons: dict[str, QPixmap] = {}
         self._rows: dict[str, int] = {}
+        self._favorites: set[str] = set()
+        self._playlist: set[str] = set()
+        self._excluded: set[str] = set()
 
     def rowCount(self, parent: QModelIndex = _NO_PARENT) -> int:
         if parent.isValid():
@@ -39,6 +45,12 @@ class GameListModel(QAbstractListModel):
             return game
         if role == self.IdRole:
             return game.id
+        if role == self.FavoriteRole:
+            return game.id in self._favorites
+        if role == self.PlaylistRole:
+            return game.id in self._playlist
+        if role == self.ExcludedRole:
+            return game.id in self._excluded
         if role == Qt.ItemDataRole.DecorationRole:
             return self._icons.get(game.id)
         return None
@@ -56,6 +68,24 @@ class GameListModel(QAbstractListModel):
         self._games = games
         self._rows = {game.id: row for row, game in enumerate(games)}
         self.endResetModel()
+
+    def set_markers(
+        self,
+        favorites: set[str],
+        playlist: set[str],
+        excluded: set[str],
+    ) -> None:
+        """Update row badges without rebuilding the model."""
+        self._favorites = set(favorites)
+        self._playlist = set(playlist)
+        self._excluded = set(excluded)
+        if not self._games:
+            return
+        self.dataChanged.emit(
+            self.index(0),
+            self.index(len(self._games) - 1),
+            [self.FavoriteRole, self.PlaylistRole, self.ExcludedRole],
+        )
 
     def set_icon(self, game_id: str, pixmap: QPixmap) -> None:
         self._icons[game_id] = pixmap
@@ -101,6 +131,16 @@ class GameDelegate(QStyledItemDelegate):
         if game is None:
             painter.restore()
             return
+        favorite = bool(index.data(GameListModel.FavoriteRole))
+        playlist = bool(index.data(GameListModel.PlaylistRole))
+        excluded = bool(index.data(GameListModel.ExcludedRole))
+        markers: list[tuple[str, str]] = []
+        if favorite:
+            markers.append(("★", theme.WARNING))
+        if playlist:
+            markers.append(("♪", theme.ACCENT))
+        if excluded:
+            markers.append(("⊘", theme.MUTED))
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         if not isinstance(icon, QPixmap) or icon.isNull():
             self._placeholder.fill(QColor(theme.SURFACE_ALT))
@@ -117,7 +157,10 @@ class GameDelegate(QStyledItemDelegate):
         path = QPainterPath()
         path.addRoundedRect(icon_rect, 6, 6)
         painter.setClipPath(path)
+        if excluded and not selected:
+            painter.setOpacity(0.55)
         painter.drawPixmap(icon_rect, icon)
+        painter.setOpacity(1.0)
         painter.setClipping(False)
 
         name_font = QFont(option.font)
@@ -126,10 +169,17 @@ class GameDelegate(QStyledItemDelegate):
         meta_font = QFont(option.font)
         meta_font.setPointSize(8)
 
-        painter.setPen(QColor(theme.TEXT if selected else theme.ROW_TEXT))
+        if selected:
+            name_color = theme.TEXT
+        elif excluded:
+            name_color = theme.MUTED
+        else:
+            name_color = theme.ROW_TEXT
+        painter.setPen(QColor(name_color))
         painter.setFont(name_font)
         text_x = icon_rect.right() + 10
-        text_width = max(20, rect.right() - text_x - 6)
+        marker_width = len(markers) * 16
+        text_width = max(20, rect.right() - text_x - 6 - marker_width)
         metrics = QFontMetrics(name_font)
         name = metrics.elidedText(game.name, Qt.TextElideMode.ElideRight, text_width)
         painter.drawText(text_x, rect.top() + 18, name)
@@ -141,4 +191,19 @@ class GameDelegate(QStyledItemDelegate):
             meta = f"{game.id}  ·  {game.themes[0]}"
         meta = QFontMetrics(meta_font).elidedText(meta, Qt.TextElideMode.ElideRight, text_width)
         painter.drawText(text_x, rect.top() + 36, meta)
+
+        marker_font = QFont(option.font)
+        marker_font.setPointSize(9)
+        painter.setFont(marker_font)
+        for slot, (glyph, color) in enumerate(markers):
+            painter.setPen(QColor(color))
+            x = rect.right() - 4 - slot * 15
+            painter.drawText(
+                x - 13,
+                rect.top() + 4,
+                13,
+                18,
+                Qt.AlignmentFlag.AlignCenter,
+                glyph,
+            )
         painter.restore()

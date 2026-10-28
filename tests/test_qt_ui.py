@@ -101,6 +101,20 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(model.index_for_id("a"), 1)
         self.assertEqual(model.index_for_id("b"), 0)
 
+    def test_markers_are_exposed_without_rebuild(self) -> None:
+        from ky_gameplayer.games import Game
+        from ky_gameplayer.model import GameListModel
+
+        model = GameListModel()
+        model.reset_games([Game(id="a", name="A"), Game(id="b", name="B")])
+        model.set_markers({"a"}, {"b"}, {"b"})
+        index = model.index(0)
+        self.assertTrue(index.data(GameListModel.FavoriteRole))
+        self.assertFalse(index.data(GameListModel.PlaylistRole))
+        self.assertFalse(index.data(GameListModel.ExcludedRole))
+        self.assertTrue(model.index(1).data(GameListModel.PlaylistRole))
+        self.assertTrue(model.index(1).data(GameListModel.ExcludedRole))
+
 
 @unittest.skipUnless(os.environ.get("KODYAZAR_UI_TESTS"), "set KODYAZAR_UI_TESTS=1 to build the window")
 class WindowSmokeTests(unittest.TestCase):
@@ -197,6 +211,77 @@ class WindowSmokeTests(unittest.TestCase):
                     self.assertIn("2", win.count_label.text())
                     self.assertIn("Güncellendi", win.catalog_status.text())
                     self.assertTrue(win.btn_catalog_restore.isHidden())
+                finally:
+                    win.tasks.cancel_all()
+                    win.hide()
+                    win.deleteLater()
+                    self.app.processEvents()
+
+    def test_language_switch_retranslates_new_panels(self) -> None:
+        from ky_gameplayer import window as window_module
+        from ky_gameplayer.i18n import set_lang
+        from ky_gameplayer.paths import app_root
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with (
+                mock.patch.object(window_module, "_config_dir", return_value=base / "cfg"),
+                mock.patch.object(window_module, "_cache_dir", return_value=base / "cache"),
+            ):
+                win = window_module.MainWindow(app_root())
+                try:
+                    win._lang = "en"
+                    set_lang("en")
+                    win._apply_language()
+                    self.assertEqual(win.right_tabs.tabText(0), "Presence")
+                    self.assertEqual(win.right_tabs.tabText(4), "Log")
+                    self.assertEqual(win.scope_buttons["all"].text(), "All")
+                    self.assertIn("Filters", win.btn_filters.text())
+                    self.assertEqual(win.grp_identity.title(), "Basics")
+                finally:
+                    set_lang("tr")
+                    win.tasks.cancel_all()
+                    win.hide()
+                    win.deleteLater()
+                    self.app.processEvents()
+
+    def test_games_panel_defaults_are_compact(self) -> None:
+        from ky_gameplayer import window as window_module
+        from ky_gameplayer.paths import app_root
+
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            with (
+                mock.patch.object(window_module, "_config_dir", return_value=base / "cfg"),
+                mock.patch.object(window_module, "_cache_dir", return_value=base / "cache"),
+            ):
+                win = window_module.MainWindow(app_root())
+                try:
+                    self.assertTrue(win.filter_drawer.isHidden())
+                    self.assertTrue(win.details_panel.isHidden())
+                    self.assertFalse(win.btn_details.isChecked())
+                    self.assertEqual(win.right_tabs.count(), 5)
+                    self.assertTrue(win.scope_buttons["all"].isChecked())
+
+                    game = win.catalog.games[0]
+                    win.store.toggle_favorite(game.id)
+                    win._set_scope("favorites")
+                    win._filter_timer.stop()
+                    win._reload_list()
+                    self.assertTrue(win.model.games())
+                    self.assertTrue(all(g.id == game.id for g in win.model.games()))
+                    self.assertTrue(win.model.index(0).data(win.model.FavoriteRole))
+
+                    win._set_scope("all")
+                    win.theme_filter.setCurrentIndex(1)
+                    self.assertEqual(win._active_filter_count(), 1)
+                    self.assertIn("Filtreler · 1", win.btn_filters.text())
+                    win._clear_filters()
+                    self.assertEqual(win._active_filter_count(), 0)
+
+                    win._toggle_details(True)
+                    self.assertFalse(win.details_panel.isHidden())
+                    self.assertIn("Teknik", win.btn_details.text())
                 finally:
                     win.tasks.cancel_all()
                     win.hide()
