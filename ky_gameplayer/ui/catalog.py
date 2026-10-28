@@ -149,6 +149,7 @@ class CatalogMixin:
         elif self.app_id.text().strip():
             self._on_app_id_entered()
         else:
+            self._set_selection_controls(False)
             self.game_meta.clear()
         self._refresh_catalog_actions()
         self._update_catalog_status()

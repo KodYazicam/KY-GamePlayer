@@ -4,9 +4,10 @@ from .common import _line
 
 
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QFrame,
@@ -15,13 +16,16 @@ from PySide6.QtWidgets import (
     QLabel,
     QListView,
     QListWidget,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
     QSpinBox,
     QSplitter,
+    QStyle,
     QTabWidget,
     QTextEdit,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -131,37 +135,86 @@ class LayoutMixin:
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        header = QHBoxLayout()
+        header.setSpacing(7)
         self.games_title = QLabel(i18n("approved_games"))
         self.games_title.setObjectName("sectionTitle")
-        layout.addWidget(self.games_title)
+        header.addWidget(self.games_title)
         self.count_label = QLabel(i18n("games_count", n=len(self.catalog.games)))
-        self.count_label.setObjectName("muted")
-        layout.addWidget(self.count_label)
+        self.count_label.setObjectName("pill")
+        header.addWidget(self.count_label)
+        header.addStretch(1)
+        self.btn_catalog_restore = QToolButton()
+        self.btn_catalog_restore.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack))
+        self.btn_catalog_restore.setIconSize(QSize(16, 16))
+        self.btn_catalog_restore.setToolTip(i18n("catalog_restore"))
+        self.btn_catalog_restore.setFixedSize(30, 28)
+        self.btn_catalog_restore.clicked.connect(self._restore_catalog)
+        self.btn_catalog_restore.hide()
+        self.btn_catalog_update = QToolButton()
+        self.btn_catalog_update.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload))
+        self.btn_catalog_update.setIconSize(QSize(16, 16))
+        self.btn_catalog_update.setToolTip(i18n("catalog_update_tip"))
+        self.btn_catalog_update.setFixedSize(30, 28)
+        self.btn_catalog_update.clicked.connect(self._update_catalog)
+        header.addWidget(self.btn_catalog_restore)
+        header.addWidget(self.btn_catalog_update)
+        layout.addLayout(header)
 
         self.catalog_status = QLabel("")
         self.catalog_status.setObjectName("muted")
+        self.catalog_status.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.catalog_status)
-        catalog_actions = QHBoxLayout()
-        catalog_actions.setSpacing(6)
-        self.btn_catalog_update = QPushButton(i18n("catalog_update"))
-        self.btn_catalog_update.setProperty("variant", "ghost")
-        self.btn_catalog_update.setToolTip(i18n("catalog_update_tip"))
-        self.btn_catalog_update.clicked.connect(self._update_catalog)
-        self.btn_catalog_restore = QPushButton(i18n("catalog_restore"))
-        self.btn_catalog_restore.setProperty("variant", "ghost")
-        self.btn_catalog_restore.clicked.connect(self._restore_catalog)
-        self.btn_catalog_restore.hide()
-        catalog_actions.addWidget(self.btn_catalog_update)
-        catalog_actions.addWidget(self.btn_catalog_restore)
-        catalog_actions.addStretch(1)
-        layout.addLayout(catalog_actions)
 
         self.search = _line(i18n("search_ph"))
+        self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self._schedule_filter)
         self.search.setFocus()
         layout.addWidget(self.search)
 
+        self._scope = "all"
+        scope_row = QHBoxLayout()
+        scope_row.setSpacing(4)
+        self.scope_group = QButtonGroup(self)
+        self.scope_group.setExclusive(True)
+        self.scope_buttons: dict[str, QPushButton] = {}
+        scopes = (
+            ("all", "scope_all_short", "scope_all"),
+            ("favorites", "scope_favorites_short", "scope_favorites"),
+            ("recents", "scope_recents_short", "scope_recents"),
+            ("playlist", "scope_playlist_short", "scope_playlist"),
+            ("excluded", "scope_excluded_short", "scope_excluded"),
+        )
+        for value, short_key, full_key in scopes:
+            button = QPushButton(i18n(short_key))
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setProperty("chip", "true")
+            button.setToolTip(i18n(full_key))
+            button.clicked.connect(lambda _checked=False, value=value: self._set_scope(value))
+            self.scope_group.addButton(button)
+            self.scope_buttons[value] = button
+            scope_row.addWidget(button)
+        self.scope_buttons["all"].setChecked(True)
+        scope_row.addStretch(1)
+        self.btn_filters = QPushButton(i18n("filters"))
+        self.btn_filters.setCheckable(True)
+        self.btn_filters.setProperty("chip", "true")
+        self.btn_filters.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_filters.toggled.connect(self._toggle_filters)
+        scope_row.addWidget(self.btn_filters)
+        layout.addLayout(scope_row)
+
+        self.filter_drawer = QFrame()
+        self.filter_drawer.setObjectName("filterDrawer")
+        drawer = QVBoxLayout(self.filter_drawer)
+        drawer.setContentsMargins(10, 8, 10, 8)
+        drawer.setSpacing(6)
         filters = QGridLayout()
+        filters.setHorizontalSpacing(8)
+        filters.setVerticalSpacing(6)
         self.theme_filter = QComboBox()
         self.theme_filter.addItem(i18n("filter_theme_all"), "")
         for theme in self.catalog.themes:
@@ -186,12 +239,6 @@ class LayoutMixin:
         self.overlay_filter.addItem(i18n("filter_overlay_all"), "all")
         self.overlay_filter.addItem(i18n("filter_overlay_yes"), "yes")
         self.overlay_filter.addItem(i18n("filter_overlay_no"), "no")
-        self.list_scope = QComboBox()
-        self.list_scope.addItem(i18n("scope_all"), "all")
-        self.list_scope.addItem(i18n("scope_favorites"), "favorites")
-        self.list_scope.addItem(i18n("scope_recents"), "recents")
-        self.list_scope.addItem(i18n("scope_playlist"), "playlist")
-        self.list_scope.addItem(i18n("scope_excluded"), "excluded")
         for box in (
             self.theme_filter,
             self.dist_filter,
@@ -199,7 +246,6 @@ class LayoutMixin:
             self.icon_filter,
             self.cover_filter,
             self.overlay_filter,
-            self.list_scope,
         ):
             box.currentIndexChanged.connect(self._schedule_filter)
         filters.addWidget(self.theme_filter, 0, 0)
@@ -208,33 +254,19 @@ class LayoutMixin:
         filters.addWidget(self.icon_filter, 1, 1)
         filters.addWidget(self.cover_filter, 2, 0)
         filters.addWidget(self.overlay_filter, 2, 1)
-        filters.addWidget(self.list_scope, 3, 0, 1, 2)
-        layout.addLayout(filters)
-
-        fav_row = QGridLayout()
-        fav_row.setHorizontalSpacing(6)
-        fav_row.setVerticalSpacing(6)
-        self.btn_fav = QPushButton(i18n("btn_fav"))
-        self.btn_playlist = QPushButton(i18n("btn_playlist"))
-        self.btn_exclude = QPushButton(i18n("btn_exclude"))
-        self.weight_box = QSpinBox()
-        self.weight_box.setRange(1, 20)
-        self.weight_box.setValue(1)
-        self.weight_box.setPrefix(i18n("weight_prefix"))
-        self.weight_box.setMaximumWidth(140)
-        for btn in (self.btn_fav, self.btn_playlist, self.btn_exclude):
-            btn.setProperty("variant", "ghost")
-        self.btn_fav.clicked.connect(self._toggle_favorite)
-        self.btn_playlist.clicked.connect(self._toggle_playlist)
-        self.btn_exclude.clicked.connect(self._toggle_excluded)
-        self.weight_box.valueChanged.connect(self._on_weight_changed)
-        fav_row.addWidget(self.btn_fav, 0, 0)
-        fav_row.addWidget(self.btn_playlist, 0, 1)
-        fav_row.addWidget(self.btn_exclude, 1, 0)
-        fav_row.addWidget(self.weight_box, 1, 1)
-        fav_row.setColumnStretch(0, 1)
-        fav_row.setColumnStretch(1, 1)
-        layout.addLayout(fav_row)
+        drawer.addLayout(filters)
+        bottom = QHBoxLayout()
+        self.filter_summary = QLabel("")
+        self.filter_summary.setObjectName("muted")
+        self.filter_summary.setWordWrap(True)
+        bottom.addWidget(self.filter_summary, 1)
+        self.btn_clear_filters = QPushButton(i18n("filters_clear"))
+        self.btn_clear_filters.setProperty("variant", "ghost")
+        self.btn_clear_filters.clicked.connect(self._clear_filters)
+        bottom.addWidget(self.btn_clear_filters)
+        drawer.addLayout(bottom)
+        self.filter_drawer.hide()
+        layout.addWidget(self.filter_drawer)
 
         self.list_view = QListView()
         self.list_view.setModel(self.model)
@@ -251,12 +283,62 @@ class LayoutMixin:
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setWordWrap(True)
         self.empty_label.hide()
-        layout.addWidget(self.empty_label)
+        layout.addWidget(self.empty_label, 1)
 
+        self.selection_card = QFrame()
+        self.selection_card.setObjectName("selectionCard")
+        selected = QVBoxLayout(self.selection_card)
+        selected.setContentsMargins(10, 8, 10, 8)
+        selected.setSpacing(5)
+        self.selection_name = QLabel(i18n("select_game"))
+        self.selection_name.setObjectName("gameTitle")
+        self.selection_meta = QLabel(i18n("select_game_hint"))
+        self.selection_meta.setObjectName("muted")
+        selected.addWidget(self.selection_name)
+        selected.addWidget(self.selection_meta)
+
+        tags = QHBoxLayout()
+        tags.setSpacing(4)
+        self.btn_fav = QPushButton(i18n("btn_fav"))
+        self.btn_playlist = QPushButton(i18n("btn_playlist"))
+        self.btn_exclude = QPushButton(i18n("btn_exclude"))
+        self.weight_box = QSpinBox()
+        self.weight_box.setRange(1, 20)
+        self.weight_box.setValue(1)
+        self.weight_box.setPrefix(i18n("weight_prefix"))
+        self.weight_box.setMaximumWidth(116)
+        for btn in (self.btn_fav, self.btn_playlist, self.btn_exclude):
+            btn.setProperty("chip", "true")
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_fav.clicked.connect(self._toggle_favorite)
+        self.btn_playlist.clicked.connect(self._toggle_playlist)
+        self.btn_exclude.clicked.connect(self._toggle_excluded)
+        self.weight_box.valueChanged.connect(self._on_weight_changed)
+        tags.addWidget(self.btn_fav)
+        tags.addWidget(self.btn_playlist)
+        tags.addWidget(self.btn_exclude)
+        tags.addWidget(self.weight_box)
+        tags.addStretch(1)
+        selected.addLayout(tags)
+        self._set_selection_controls(False)
+
+        self.btn_details = QPushButton(i18n("details_show"))
+        self.btn_details.setCheckable(True)
+        self.btn_details.setProperty("variant", "ghost")
+        self.btn_details.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_details.toggled.connect(self._toggle_details)
+        selected.addWidget(self.btn_details, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.details_panel = QWidget()
+        details = QVBoxLayout(self.details_panel)
+        details.setContentsMargins(0, 0, 0, 0)
         self.game_meta = QTextEdit()
         self.game_meta.setReadOnly(True)
-        self.game_meta.setMaximumHeight(168)
-        layout.addWidget(self.game_meta)
+        self.game_meta.setMaximumHeight(160)
+        details.addWidget(self.game_meta)
+        self.details_panel.hide()
+        selected.addWidget(self.details_panel)
+        layout.addWidget(self.selection_card)
+        self._update_filter_badge()
         return panel
 
     def _build_right(self) -> QWidget:
@@ -279,46 +361,103 @@ class LayoutMixin:
         layout.addWidget(self.preview)
 
         actions = QHBoxLayout()
+        actions.setSpacing(6)
         self.btn_connect = QPushButton(i18n("btn_connect"))
         self.btn_update = QPushButton(i18n("btn_update"))
         self.btn_clear = QPushButton(i18n("btn_clear"))
         self.btn_disconnect = QPushButton(i18n("btn_disconnect"))
-        self.btn_copy = QPushButton(i18n("btn_copy"))
-        self.btn_export = QPushButton(i18n("btn_export"))
-        self.btn_import = QPushButton(i18n("btn_import"))
         self.btn_connect.clicked.connect(lambda: self._connect())
         self.btn_update.clicked.connect(lambda: self._update_rpc())
         self.btn_clear.clicked.connect(self._clear_rpc)
         self.btn_disconnect.clicked.connect(self._disconnect)
-        self.btn_copy.clicked.connect(self._copy_json)
-        self.btn_export.clicked.connect(self._export_profiles)
-        self.btn_import.clicked.connect(self._import_profiles)
-        for btn in (self.btn_clear, self.btn_disconnect, self.btn_copy, self.btn_export, self.btn_import):
-            btn.setProperty("variant", "ghost")
+        self.btn_clear.setProperty("variant", "ghost")
         self.btn_disconnect.setProperty("variant", "danger")
-        for btn in (
-            self.btn_connect,
-            self.btn_update,
-            self.btn_clear,
-            self.btn_disconnect,
-            self.btn_copy,
-            self.btn_export,
-            self.btn_import,
-        ):
-            actions.addWidget(btn)
+        self.more_menu = QMenu(self)
+        self.menu_copy = self.more_menu.addAction(i18n("btn_copy"))
+        self.menu_export = self.more_menu.addAction(i18n("btn_export"))
+        self.menu_import = self.more_menu.addAction(i18n("btn_import"))
+        self.menu_copy.triggered.connect(self._copy_json)
+        self.menu_export.triggered.connect(self._export_profiles)
+        self.menu_import.triggered.connect(self._import_profiles)
+        self.btn_more = QToolButton()
+        self.btn_more.setText("⋯")
+        self.btn_more.setToolTip(i18n("more_actions"))
+        self.btn_more.setMenu(self.more_menu)
+        self.btn_more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        actions.addWidget(self.btn_connect)
+        actions.addWidget(self.btn_update)
+        actions.addWidget(self.btn_clear)
+        actions.addStretch(1)
+        actions.addWidget(self.btn_more)
+        actions.addWidget(self.btn_disconnect)
         layout.addLayout(actions)
+
+        self.right_tabs = QTabWidget()
+        self.right_tabs.setDocumentMode(True)
+
+        self._build_automation_page()
+        pages = (
+            ("subtab_presence", self._form_page(
+                self._identity_group(),
+                self._text_group(),
+            )),
+            ("subtab_advanced", self._form_page(
+                self._identity_advanced_group(),
+                self._text_advanced_group(),
+                self._assets_group(),
+                self._time_group(),
+                self._party_group(),
+                self._buttons_group(),
+                self._secrets_group(),
+                self._flags_group(),
+                self._cycle_group(),
+                self._schedule_group(),
+            )),
+            ("subtab_automation", self.automation_page),
+            ("subtab_science", self._form_page(self._science_group())),
+            ("subtab_log", self._form_page(self._log_group())),
+        )
+        for key, page in pages:
+            self.right_tabs.addTab(page, i18n(key))
+        layout.addWidget(self.right_tabs, 1)
+        return panel
+
+    def _form_page(self, *groups: QWidget) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        host = QWidget()
+        form = QVBoxLayout(host)
+        form.setContentsMargins(8, 8, 8, 8)
+        form.setSpacing(8)
+        for group in groups:
+            form.addWidget(group)
+        form.addStretch(1)
+        scroll.setWidget(host)
+        return scroll
+
+    def _build_automation_page(self) -> None:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        host = QWidget()
+        auto = QVBoxLayout(host)
+        auto.setContentsMargins(8, 8, 8, 8)
+        auto.setSpacing(8)
 
         profiles = QHBoxLayout()
         self.profile_box = QComboBox()
         self.profile_box.setEditable(True)
         self.profile_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.profile_caption = QLabel(i18n("profile"))
         self.btn_profile_save = QPushButton(i18n("profile_save"))
         self.btn_profile_load = QPushButton(i18n("profile_load"))
         self.btn_profile_del = QPushButton(i18n("profile_del"))
         self.btn_profile_save.clicked.connect(self._save_profile)
         self.btn_profile_load.clicked.connect(self._load_profile)
         self.btn_profile_del.clicked.connect(self._delete_profile)
-        self.profile_caption = QLabel(i18n("profile"))
         for btn in (self.btn_profile_save, self.btn_profile_load, self.btn_profile_del):
             btn.setProperty("variant", "ghost")
         profiles.addWidget(self.profile_caption)
@@ -326,7 +465,7 @@ class LayoutMixin:
         profiles.addWidget(self.btn_profile_save)
         profiles.addWidget(self.btn_profile_load)
         profiles.addWidget(self.btn_profile_del)
-        layout.addLayout(profiles)
+        auto.addLayout(profiles)
 
         random_row = QHBoxLayout()
         self.random_enabled = QCheckBox(i18n("random_mode"))
@@ -362,12 +501,12 @@ class LayoutMixin:
         random_row.addWidget(self.random_interval)
         random_row.addWidget(self.btn_random_now)
         random_row.addWidget(self.random_countdown, 1)
-        layout.addLayout(random_row)
+        auto.addLayout(random_row)
 
         random_opts = QHBoxLayout()
         random_opts.addWidget(self.random_source, 1)
         random_opts.addWidget(self.random_norepeat)
-        layout.addLayout(random_opts)
+        auto.addLayout(random_opts)
 
         extras = QHBoxLayout()
         extras_box = QVBoxLayout()
@@ -391,7 +530,7 @@ class LayoutMixin:
         self.extra_list.setMaximumHeight(92)
         extras.addLayout(extras_box, 1)
         extras.addWidget(self.extra_list, 2)
-        layout.addLayout(extras)
+        auto.addLayout(extras)
 
         detect_row = QHBoxLayout()
         self.detect_enabled = QCheckBox(i18n("detect_enabled"))
@@ -409,34 +548,14 @@ class LayoutMixin:
         detect_row.addWidget(self.detect_apply)
         detect_row.addWidget(self.detect_pid)
         detect_row.addStretch(1)
-        layout.addLayout(detect_row)
+        auto.addLayout(detect_row)
 
         detect_pick = QHBoxLayout()
         self.detect_box.setMinimumWidth(150)
         detect_pick.addWidget(self.detect_box, 1)
         detect_pick.addWidget(self.btn_detect_now)
         detect_pick.addWidget(self.btn_use_detect)
-        layout.addLayout(detect_pick)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        form_host = QWidget()
-        form = QVBoxLayout(form_host)
-        form.addWidget(self._identity_group())
-        form.addWidget(self._text_group())
-        form.addWidget(self._assets_group())
-        form.addWidget(self._time_group())
-        form.addWidget(self._party_group())
-        form.addWidget(self._buttons_group())
-        form.addWidget(self._secrets_group())
-        form.addWidget(self._flags_group())
-        form.addWidget(self._cycle_group())
-        form.addWidget(self._schedule_group())
-        form.addWidget(self._science_group())
-        form.addWidget(self._log_group())
-        form.addStretch(1)
-        scroll.setWidget(form_host)
-        layout.addWidget(scroll, 1)
-        return panel
+        auto.addLayout(detect_pick)
+        auto.addStretch(1)
+        scroll.setWidget(host)
+        self.automation_page = scroll
