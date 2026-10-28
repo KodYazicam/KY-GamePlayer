@@ -17,7 +17,12 @@ It is **not** a bot, **not** a hosted service, and it does **not** send your tok
 | `logs/kodyazar-YYYYMMDD.log` | cache dir | Medium — IPC status, quest/science progress. Must not contain raw tokens |
 | `cdn/` | cache dir | Low — downloaded PNG icons |
 
-Windows encrypts `science_state.json` with DPAPI (`KY1\x00` + `CryptProtectData`). Linux and macOS write the JSON with mode `0600`.
+Windows encrypts `science_state.json` with DPAPI (`KY1\x00` + `CryptProtectData`).
+Linux and macOS keep `token`, `cookie` and `analytics_token` in the OS keyring
+(Secret Service / Keychain, service `kodyazar-client`); the JSON file only holds
+non-sensitive values and stays `0600`. If no keyring backend is available the app
+falls back to the previous plain `0600` file. `KODYAZAR_NO_KEYRING=1` forces that
+fallback explicitly.
 
 Paths: [`docs/data.md`](docs/data.md).
 

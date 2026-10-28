@@ -24,6 +24,12 @@
   <a href="./docs/README.tr.md">Türkçe</a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshot-games.png" alt="Games tab — catalog, RPC editor and presence preview" width="49%">
+  <img src="docs/screenshot-badges.png" alt="Badges tab" width="49%">
+</p>
+<p align="center"><em>Rendered from the real UI with synthetic demo data.</em></p>
+
 ```
 Author : Batuhan (KodYazicam)
 Project: KY-GamePlayer (KodYazar Client)
@@ -89,13 +95,15 @@ Long form:
 
 ## Feature surface
 
-| Area | What ships in 1.0.0 |
+| Area | What ships in 1.2.0 |
 | --- | --- |
-| Shell | Dark Fusion UI, tray, single instance, TR/EN, autostart (Linux/Windows/macOS) |
+| Shell | Dark theme (design tokens + app-wide style sheet), tray, single instance, TR/EN, autostart (Linux/Windows/macOS) |
 | Lock | Harvest token from Discord/Vesktop Local Storage; optional paste; guild membership required |
 | Games | Search, theme/store/OS/icon/cover/overlay filters, favorites, playlist, exclude, weights |
 | RPC | Playing/Streaming/Listening/Watching/Custom/Competing, assets, party, buttons xor secrets, flags |
 | Detect | Process scan every 5 s; Proton/Wine exe tokens; PID fill |
+| Responsiveness | REST, credential harvest and process scans run off the GUI thread (`ui/tasks.py`) |
+| Secrets | Keyring (Secret Service / Keychain) on Linux/macOS; DPAPI on Windows |
 | Random | Weighted pool, no-repeat N, countdown, Ctrl+R |
 | Extras | Up to 8 extra IPC connections (Vesktop may stack; official Discord shows one Playing) |
 | Cycle / schedule | Line-based frames; time window; idle clear; auto-reconnect |
@@ -115,6 +123,7 @@ Long form:
 - Python **3.11+**
 - `PySide6>=6.6,<7`
 - `cryptography>=42` (Chromium cookie `v10`/`v11` AES-GCM)
+- `keyring>=24` on Linux/macOS (token storage; `KODYAZAR_NO_KEYRING=1` disables it)
 - Discord desktop (or Vesktop / Vencord) **running** for IPC
 - Membership in [KodYazar Client](https://discord.gg/rS42FCPfKZ) (`1549516395010854912`)
 
@@ -258,7 +267,7 @@ Needs token + cookie. Fingerprint (`executable_fingerprint`) from Discord’s ow
 
 Safety rails: **dry-run** builds and logs events without POSTing, and sources larger than **2000 games** (e.g. “all”) require a confirm dialog — the engine itself refuses to exceed the cap without explicit confirmation. The identity-tab **fingerprint capture** button copies the value from Discord’s own disk state.
 
-Credentials: `science_state.json` (Windows DPAPI `KY1\x00` prefix, else mode `0600`).
+Credentials: `science_state.json` (Windows DPAPI `KY1\x00` prefix; on Linux/macOS the secrets live in the OS keyring, the file keeps `mode 0600`).
 
 ---
 
@@ -288,7 +297,7 @@ Credentials: `science_state.json` (Windows DPAPI `KY1\x00` prefix, else mode `06
 
 | File | Sensitivity |
 | --- | --- |
-| `science_state.json` | **High** — token, cookie, analytics, fingerprint |
+| `science_state.json` | **High** — token, cookie, analytics in the OS keyring; fingerprint in the file |
 | `profiles.json` | RPC presets, favorites, settings (no token) |
 | `logs/kodyazar-YYYYMMDD.log` | IPC / quest / science status |
 | `cdn/` | Downloaded PNG icons |
@@ -322,6 +331,7 @@ KY-GamePlayer/
   kurulum.bat / windows.bat
   kodyazar.desktop.in
   ky_gameplayer/         package — see ky_gameplayer/README.md
+    ui/                  window mixins, theme, async TaskRunner
   assets/                app icons
   packaging/windows/     PyInstaller
   tests/                 Qt-free unittest
@@ -336,9 +346,9 @@ Full checklist: [`docs/roadmap.md`](docs/roadmap.md). Short version:
 
 | Stage | Goal |
 | --- | --- |
-| **1.1.0 now** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, optional one-file EXE, settings block (log level / harvest / lock timeout), persisted window geometry, per-game templates, Listening helper, script hooks, science dry-run + 2000-game confirm cap, fingerprint capture button, rate-limit dashboard. Social preview still open. |
-| **1.2** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack |
-| **1.3** | Quest types beyond video/play/stream if Discord adds them |
+| **1.1.0** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, optional one-file EXE, settings block (log level / harvest / lock timeout), persisted window geometry, per-game templates, Listening helper, script hooks, science dry-run + 2000-game confirm cap, fingerprint capture button, rate-limit dashboard, social preview. |
+| **1.2.0 now** | `MainWindow` split into `ky_gameplayer/ui/`, blocking REST/harvest moved off the GUI thread, modern theme, keyring on Linux/macOS, per-game search cache, CI on 3.14 + lint + offscreen Qt + Windows. |
+| **1.3** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack, quest types beyond video/play/stream |
 | **2.0** | Multi-account identity files, signed binaries. **No** telemetry unless opt-in |
 
 Out of scope: v20 cookie decrypt, hosting tokens, bot-token mode, fake Staff badges.
@@ -352,7 +362,7 @@ python -m compileall -q ky_gameplayer run.py tests
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions: Python 3.11 / 3.12 / 3.13, no PySide6 install. Tests cover activity JSON, catalog load and sync, science helpers and dry-run, quest parse, profiles and game templates, detect matching, script hooks, rate-limit counters.
+GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test) and a Windows job. Tests cover activity JSON, catalog load/sync and search, science helpers and dry-run, quest parse, profiles and game templates, detect matching, script hooks, rate-limit counters, translations and keyring storage.
 
 ---
 
