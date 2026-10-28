@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import stat
 import struct
 import sys
 import threading
@@ -271,7 +272,8 @@ def _try_win_pipe(path: str, timeout: float) -> WinPipeTransport | None:
     return None
 
 
-def _win_pipe_present() -> bool:
+def _win_pipe_first() -> str | None:
+    """Return the first existing Discord pipe without connecting to it."""
     try:
         import ctypes
         from ctypes import wintypes
@@ -281,12 +283,28 @@ def _win_pipe_present() -> bool:
         kernel32.WaitNamedPipeW.restype = wintypes.BOOL
         for path in discord_ipc_candidates():
             if kernel32.WaitNamedPipeW(path, 0):
-                return True
-            if ctypes.get_last_error() == 231:
-                return True
+                return path
+            if ctypes.get_last_error() == 231:  # ERROR_PIPE_BUSY: exists, just busy
+                return path
     except Exception:
-        return False
-    return False
+        return None
+    return None
+
+
+def _win_pipe_present() -> bool:
+    return _win_pipe_first() is not None
+
+
+def _unix_socket_first() -> str | None:
+    """Stat candidate paths; never connect (a connect can stall for seconds)."""
+    for path in discord_ipc_candidates():
+        try:
+            mode = os.stat(path).st_mode
+        except OSError:
+            continue
+        if stat.S_ISSOCK(mode):
+            return path
+    return None
 
 
 def open_discord_ipc(timeout: float = 0.4) -> tuple[str, IpcTransport] | None:
@@ -307,20 +325,18 @@ def open_discord_ipc(timeout: float = 0.4) -> tuple[str, IpcTransport] | None:
 
 
 def find_discord_ipc() -> str | None:
+    """Cheap presence check: no socket is opened, so this is safe on the GUI thread.
+
+    The result only means "a Discord socket/pipe exists". A stale socket is
+    detected by the real (background) connect attempt.
+    """
     if _win():
-        if _win_pipe_present():
-            for path in discord_ipc_candidates():
-                return path
-        return None
-    opened = open_discord_ipc()
-    if opened is None:
-        return None
-    path, transport = opened
-    try:
-        transport.close()
-    except OSError:
-        pass
-    return path
+        return _win_pipe_first()
+    return _unix_socket_first()
+
+
+def discord_ipc_available() -> bool:
+    return find_discord_ipc() is not None
 
 
 class DiscordIpc(QObject):
@@ -335,6 +351,7 @@ class DiscordIpc(QObject):
         self._sock: IpcTransport | None = None
         self._thread: threading.Thread | None = None
         self._running = False
+        self._connecting = False
         self._client_id = ""
         self._lock = threading.Lock()
         self._generation = 0
@@ -344,35 +361,68 @@ class DiscordIpc(QObject):
         return self._client_id
 
     @property
+    def connecting(self) -> bool:
+        return self._connecting
+
+    @property
     def connected(self) -> bool:
         return self._sock is not None and self._running
 
     def connect(self, client_id: str) -> None:
+        """Start connecting on a worker thread; returns immediately.
+
+        Opening a stale Unix socket can block for the full connection timeout,
+        which must never happen on the GUI thread. The reader loop runs on the
+        same worker thread once the handshake is written.
+        """
         self.disconnect(reason="", emit=False)
-        opened = open_discord_ipc(timeout=1.0)
-        if opened is None:
-            self.failed.emit(t("ipc_missing"))
-            return
-        path, sock = opened
         self._client_id = str(client_id)
         generation = self._generation
-        try:
-            sock.settimeout(1)
-        except OSError:
-            pass
-        self._sock = sock
         self._running = True
+        self._connecting = True
         self._thread = threading.Thread(
-            target=self._loop, args=(generation,), name="discord-ipc", daemon=True
+            target=self._open_and_run,
+            args=(generation,),
+            name="discord-ipc",
+            daemon=True,
         )
         self._thread.start()
+
+    def _open_and_run(self, generation: int) -> None:
+        try:
+            opened = open_discord_ipc(timeout=0.5)
+        except Exception:
+            opened = None
+        if opened is None:
+            if generation == self._generation:
+                self._running = False
+                self._connecting = False
+                self.failed.emit(t("ipc_missing"))
+            return
+        path, transport = opened
+        with self._lock:
+            if generation != self._generation or not self._running:
+                stale = True
+            else:
+                self._sock = transport
+                stale = False
+        if stale:
+            try:
+                transport.close()
+            except OSError:
+                pass
+            self._connecting = False
+            return
+        self._connecting = False
         self.status.emit(t("ipc_socket", path=path))
         self._send(OP_HANDSHAKE, {"v": 1, "client_id": self._client_id})
+        self._loop(generation)
 
     def disconnect(self, reason: str = "disconnected", emit: bool = True) -> None:
         was = self._sock is not None or self._running
         self._generation += 1
         self._running = False
+        self._connecting = False
         with self._lock:
             sock = self._sock
             self._sock = None
@@ -386,9 +436,12 @@ class DiscordIpc(QObject):
             except OSError:
                 pass
         thread = self._thread
-        if thread is not None and thread is not threading.current_thread():
-            thread.join(timeout=1.5)
         self._thread = None
+        if thread is not None and thread is not threading.current_thread() and sock is not None:
+            # Socket is already shut down, so the reader unblocks right away.
+            # While the worker is still walking its candidate list we do not
+            # wait at all: it sees the bumped generation and closes the socket.
+            thread.join(timeout=0.4)
         if emit and was and reason:
             self.closed.emit(reason)
 
@@ -486,6 +539,7 @@ class DiscordIpc(QObject):
                 continue
             self.frame.emit(payload)
         self._running = False
+        self._connecting = False
         with self._lock:
             sock = self._sock
             self._sock = None

@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from ..detect import DetectedGame
 from ..games import Game
-from ..ipc import find_discord_ipc
+from ..ipc import discord_ipc_available
 from ..brand import APP_TITLE
 from ..i18n import t as i18n
 from ..processes import list_processes
@@ -34,7 +34,7 @@ class PresenceMixin:
             if not silent:
                 QMessageBox.warning(self, APP_TITLE, i18n("warn_no_game"))
             return
-        if not find_discord_ipc():
+        if not discord_ipc_available():
             self._log(key="log_no_ipc")
             if not silent:
                 QMessageBox.warning(self, APP_TITLE, i18n("msg_no_ipc"))
@@ -44,6 +44,8 @@ class PresenceMixin:
         if self.ipc.connected and self.ipc.client_id == app_id:
             self._set_status(i18n("status_already", id=app_id))
             return
+        if self.ipc.connecting and self.ipc.client_id == app_id:
+            return
         self._want_connected = True
         self._set_status(i18n("status_connecting"))
         self._log(key="log_connecting", id=app_id)
@@ -52,6 +54,7 @@ class PresenceMixin:
     def _disconnect(self) -> None:
         self._want_connected = False
         self._reconnect_tries = 0
+        self._stop_reconnect_timer()
         self.ipc.disconnect("user")
         self._log(key="log_disconnected")
 
@@ -60,6 +63,10 @@ class PresenceMixin:
         if not app_id:
             if not silent:
                 QMessageBox.warning(self, APP_TITLE, i18n("warn_no_game"))
+            return
+        if self.ipc.connecting and self.ipc.client_id == app_id:
+            # Do not cancel an in-flight connect: send the activity once READY.
+            self._pending_update = True
             return
         if not self.ipc.connected or self.ipc.client_id != app_id:
             self._pending_update = True
@@ -88,6 +95,7 @@ class PresenceMixin:
         self._set_status(i18n("status_json"))
 
     def _on_ready(self, data: dict) -> None:
+        self._stop_reconnect_timer()
         user = data.get("user") or {}
         name = user.get("global_name") or user.get("username") or ""
         self._ready_user = str(name)
@@ -161,7 +169,7 @@ class PresenceMixin:
         if len(self.extra_slots) >= MAX_EXTRA_SLOTS:
             QMessageBox.warning(self, APP_TITLE, i18n("msg_pin_max", n=MAX_EXTRA_SLOTS))
             return
-        if not find_discord_ipc():
+        if not discord_ipc_available():
             QMessageBox.warning(self, APP_TITLE, i18n("msg_no_ipc"))
             return
         config = self.collect()
@@ -413,10 +421,27 @@ class PresenceMixin:
             self._log(key="log_idle")
 
     def _schedule_reconnect(self) -> None:
+        if not self._want_connected:
+            return
         self._reconnect_tries += 1
         delay = min(30, 2 ** min(self._reconnect_tries, 5)) * 1000
         self._log(key="log_reconnect", s=delay // 1000)
-        QTimer.singleShot(delay, lambda: self._connect(silent=True) if self._want_connected else None)
+        timer = getattr(self, "_reconnect_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(self._reconnect_tick)
+            self._reconnect_timer = timer
+        timer.start(delay)
+
+    def _reconnect_tick(self) -> None:
+        if self._want_connected:
+            self._connect(silent=True)
+
+    def _stop_reconnect_timer(self) -> None:
+        timer = getattr(self, "_reconnect_timer", None)
+        if timer is not None:
+            timer.stop()
 
     def _on_detect_toggled(self, enabled: bool) -> None:
         self._save_random_settings()
