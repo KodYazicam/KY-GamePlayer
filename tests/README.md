@@ -7,7 +7,10 @@ Most tests stay **Qt-free**: they import dataclasses, JSON, and helpers, and nev
 construct `QApplication`, open Discord IPC, or harvest cookies. That keeps the
 matrix cheap and sandbox-safe. `test_qt_ui.py`, `test_theme.py`,
 `test_ipc.py` and `test_quest_science.py` are the Qt-facing group and run only
-with `KODYAZAR_UI_TESTS=1` in the offscreen UI job.
+with `KODYAZAR_UI_TESTS=1` in the offscreen UI job. Window smoke tests point
+`HOME`/`XDG_*` at an empty temporary directory and disable the membership and
+process-scan timers, so they never read a developer's Discord install or start a
+real token check.
 
 ## Commands
 
@@ -34,6 +37,8 @@ python -m coverage report --fail-under=60
 | `test_activity.py` | `ActivityConfig.build`, buttons vs secrets, clip empty strings, JSON round-trip, party size, streaming URL only on type 1 | IPC `SET_ACTIVITY` |
 | `test_catalog.py` | `GameCatalog.load` of the real `games.json`, Overwatch id, token/theme/OS filters, Steam store URL priority | CDN downloads |
 | `test_catalog_sync.py` | validation, diff, shrink guard, atomic install, `.bak`/restore, local HTTP download, CLI | Live Discord CDN |
+| `test_client_auth.py` | token/cookie/fingerprint discovery, process classification, temp SQLite fixtures, empty-home browser roots | Real Discord install |
+| `test_discord_rest.py` | route helpers, guild pagination, fallback routes and privacy/clan/claim flows with mocked `request` | Live Discord REST |
 | `test_httputil.py` | 429/5xx retry policy, POST opt-in, `Retry-After` seconds/date, transport errors, stats (local server) | External network |
 | `test_science.py` | `win_exe_from_entry`, `chunked`, `ScienceSession.new`, `science_game_from` | POST `/science` |
 | `test_rest.py` | Quest JSON parse, house flags, guild membership helpers, badge decode, i18n `t()` | Live Discord REST |
