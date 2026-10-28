@@ -23,7 +23,7 @@ from .brand import APP_TITLE
 from .i18n import t as i18n
 from .paths import cache_dir as _cache_dir
 from .paths import config_dir as _config_dir
-from .profiles import ProfileStore
+from .profiles import ProfileStore, settings_bool, settings_int, settings_str
 from .quest_engine import QuestEngine
 from .science_worker import ScienceEngine
 
@@ -91,8 +91,8 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsM
                 self.restoreGeometry(bytes.fromhex(geometry))
             except ValueError:
                 pass
-        self._lock_timeout = max(5, int(self.store.settings().get("lock_timeout") or 20))
-        self._harvest_enabled = bool(self.store.settings().get("harvest_enabled", True))
+        self._lock_timeout = settings_int(self.store.settings(), "lock_timeout", 20, minimum=5, maximum=120)
+        self._harvest_enabled = settings_bool(self.store.settings(), "harvest_enabled", True)
         self.images = ImageCache(_cache_dir() / "cdn", self)
         self.science = ScienceEngine(_config_dir() / "science_state.json", self)
         self.quest_engine = QuestEngine(self)
@@ -182,7 +182,9 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsM
         QTimer.singleShot(50, self._enforce_membership)
 
     def _apply_style(self) -> None:
-        mode = str(self.store.settings().get("theme_mode") or "dark")
+        mode = settings_str(
+            self.store.settings(), "theme_mode", "dark", allowed={"system", "dark", "light"}
+        )
         app = QApplication.instance()
         apply_theme(app if app is not None else self, mode=mode)
         if hasattr(self, "list_view"):
@@ -191,6 +193,8 @@ class MainWindow(LockMixin, TrayMixin, LanguageMixin, AccountMixin, DiagnosticsM
             self.preview.update()
 
     def _on_system_scheme(self, *_args) -> None:
-        mode = str(self.store.settings().get("theme_mode") or "dark")
+        mode = settings_str(
+            self.store.settings(), "theme_mode", "dark", allowed={"system", "dark", "light"}
+        )
         if mode == "system":
             self._apply_style()

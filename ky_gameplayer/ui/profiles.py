@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from ..brand import APP_TITLE
 from ..i18n import set_lang, t as i18n
+from ..profiles import settings_bool, settings_float, settings_int, settings_str
 
 
 class ProfilesMixin:
@@ -67,49 +68,59 @@ class ProfilesMixin:
 
     def _restore_extra_settings(self) -> None:
         settings = self.store.settings()
-        interval = int(settings.get("random_interval") or 60)
-        self.random_interval.setValue(max(5, min(86400, interval)))
-        source = str(settings.get("random_source") or "filter")
+        self.random_interval.setValue(settings_int(settings, "random_interval", 60, minimum=5, maximum=86400))
+        source = settings_str(settings, "random_source", "filter", allowed={"filter", "all", "favorites", "playlist"})
         index = self.random_source.findData(source)
         if index >= 0:
             self.random_source.setCurrentIndex(index)
-        self.random_norepeat.setValue(int(settings.get("random_norepeat") or 8))
-        self.cycle_interval.setValue(int(settings.get("cycle_interval") or 20))
-        self.cycle_lines.setPlainText(str(settings.get("cycle_lines") or ""))
-        self.auto_reconnect.setChecked(bool(settings.get("auto_reconnect", True)))
-        self.idle_clear.setChecked(bool(settings.get("idle_clear")))
-        self.idle_seconds.setValue(int(settings.get("idle_seconds") or 1800))
-        self.schedule_enabled.setChecked(bool(settings.get("schedule_enabled")))
-        start = str(settings.get("schedule_start") or "09:00")
-        end = str(settings.get("schedule_end") or "23:00")
+        self.random_norepeat.setValue(settings_int(settings, "random_norepeat", 8, minimum=0, maximum=50))
+        self.cycle_interval.setValue(settings_int(settings, "cycle_interval", 20, minimum=5, maximum=3600))
+        self.cycle_lines.setPlainText(settings_str(settings, "cycle_lines", ""))
+        self.auto_reconnect.setChecked(settings_bool(settings, "auto_reconnect", True))
+        self.idle_clear.setChecked(settings_bool(settings, "idle_clear", False))
+        self.idle_seconds.setValue(settings_int(settings, "idle_seconds", 1800, minimum=30, maximum=86400))
+        self.schedule_enabled.setChecked(settings_bool(settings, "schedule_enabled", False))
+        start = settings_str(settings, "schedule_start", "09:00")
+        end = settings_str(settings, "schedule_end", "23:00")
         self.schedule_start.setTime(QTime.fromString(start, "HH:mm"))
         self.schedule_end.setTime(QTime.fromString(end, "HH:mm"))
-        self.detect_apply.setChecked(bool(settings.get("detect_apply")))
-        self.detect_pid.setChecked(bool(settings.get("detect_pid", True)))
-        if bool(settings.get("detect_enabled")):
+        self.detect_apply.setChecked(settings_bool(settings, "detect_apply", False))
+        self.detect_pid.setChecked(settings_bool(settings, "detect_pid", True))
+        if settings_bool(settings, "detect_enabled", False):
             self.detect_enabled.setChecked(True)
-        self.science_enabled.setChecked(bool(settings.get("science_enabled")))
-        self.science_on_random.setChecked(bool(settings.get("science_on_random", True)))
-        self.science_on_detect.setChecked(bool(settings.get("science_on_detect")))
-        self.science_on_current.setChecked(bool(settings.get("science_on_current", True)))
-        self.science_dry_run.setChecked(bool(settings.get("science_dry_run")))
+        self.science_enabled.setChecked(settings_bool(settings, "science_enabled", False))
+        self.science_on_random.setChecked(settings_bool(settings, "science_on_random", True))
+        self.science_on_detect.setChecked(settings_bool(settings, "science_on_detect", False))
+        self.science_on_current.setChecked(settings_bool(settings, "science_on_current", True))
+        self.science_dry_run.setChecked(settings_bool(settings, "science_dry_run", False))
         if hasattr(self, "template_box"):
-            self.template_box.setChecked(bool(settings.get("use_game_templates", True)))
-        mode_index = self.science_mode.findData(str(settings.get("science_mode") or "playtime"))
+            self.template_box.setChecked(settings_bool(settings, "use_game_templates", True))
+        mode_index = self.science_mode.findData(
+            settings_str(settings, "science_mode", "playtime", allowed={"playtime", "played"})
+        )
         if mode_index >= 0:
             self.science_mode.setCurrentIndex(mode_index)
-        self.science_hours.setValue(float(settings.get("science_hours") or 2.0))
-        self.science_batch.setValue(int(settings.get("science_batch") or 20))
-        self.science_delay.setValue(float(settings.get("science_delay") or 0.8))
-        self.science_jitter.setValue(float(settings.get("science_jitter") or 0.05))
-        source_index = self.science_source.findData(str(settings.get("science_source") or "current"))
+        self.science_hours.setValue(settings_float(settings, "science_hours", 2.0, minimum=0.01, maximum=24.0))
+        self.science_batch.setValue(settings_int(settings, "science_batch", 20, minimum=1, maximum=200))
+        self.science_delay.setValue(settings_float(settings, "science_delay", 0.8, minimum=0.0, maximum=10.0))
+        self.science_jitter.setValue(settings_float(settings, "science_jitter", 0.05, minimum=0.0, maximum=0.5))
+        source_index = self.science_source.findData(
+            settings_str(
+                settings,
+                "science_source",
+                "current",
+                allowed={"current", "filter", "favorites", "playlist", "all", "missing"},
+            )
+        )
         if source_index >= 0:
             self.science_source.setCurrentIndex(source_index)
         self.science_token.setText(self.science.state.token)
         self.science_cookie.setText(self.science.state.cookie)
         self.science_fp.setText(self.science.state.fingerprint)
-        self.science_target_hours.setValue(float(settings.get("science_target_hours") or 0))
-        lang = str(settings.get("lang") or "tr")
+        self.science_target_hours.setValue(
+            settings_float(settings, "science_target_hours", 0.0, minimum=0.0, maximum=500.0)
+        )
+        lang = settings_str(settings, "lang", "tr", allowed={"tr", "en"})
         idx = self.lang_box.findData(lang)
         if idx >= 0:
             self.lang_box.blockSignals(True)
@@ -121,21 +132,25 @@ class ProfilesMixin:
         self._refresh_science_status()
         self._refresh_pid_list()
         if hasattr(self.pages, "log_level_box"):
-            index = self.pages.log_level_box.findData(str(settings.get("log_level") or "INFO"))
+            index = self.pages.log_level_box.findData(
+                settings_str(settings, "log_level", "INFO", allowed={"DEBUG", "INFO", "WARNING", "ERROR"})
+            )
             if index >= 0:
                 self.pages.log_level_box.blockSignals(True)
                 self.pages.log_level_box.setCurrentIndex(index)
                 self.pages.log_level_box.blockSignals(False)
         if hasattr(self.pages, "harvest_box"):
             self.pages.harvest_box.blockSignals(True)
-            self.pages.harvest_box.setChecked(bool(settings.get("harvest_enabled", True)))
+            self.pages.harvest_box.setChecked(settings_bool(settings, "harvest_enabled", True))
             self.pages.harvest_box.blockSignals(False)
         if hasattr(self.pages, "lock_timeout"):
             self.pages.lock_timeout.blockSignals(True)
-            self.pages.lock_timeout.setValue(max(5, int(settings.get("lock_timeout") or 20)))
+            self.pages.lock_timeout.setValue(settings_int(settings, "lock_timeout", 20, minimum=5, maximum=120))
             self.pages.lock_timeout.blockSignals(False)
         if hasattr(self.pages, "theme_box"):
-            index = self.pages.theme_box.findData(str(settings.get("theme_mode") or "dark"))
+            index = self.pages.theme_box.findData(
+                settings_str(settings, "theme_mode", "dark", allowed={"system", "dark", "light"})
+            )
             if index >= 0:
                 self.pages.theme_box.blockSignals(True)
                 self.pages.theme_box.setCurrentIndex(index)

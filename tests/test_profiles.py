@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from ky_gameplayer.activity import ActivityConfig
 from ky_gameplayer.paths import atomic_write
-from ky_gameplayer.profiles import ProfileStore
+from ky_gameplayer.profiles import SCHEMA_VERSION, ProfileStore
 
 
 class ProfileStoreTests(unittest.TestCase):
@@ -40,6 +41,60 @@ class ProfileStoreTests(unittest.TestCase):
         self.store.set_weight("b", 99)
         self.assertEqual(self.store.weight("b"), 20)
 
+    def test_load_coerces_malformed_settings(self) -> None:
+        self.path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "not-a-number",
+                    "settings": {
+                        "random_interval": "abc",
+                        "science_hours": "nope",
+                        "lock_timeout": None,
+                        "auto_reconnect": "no",
+                        "theme_mode": "neon",
+                        "science_batch": 999,
+                        "unknown": {"keep": True},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        store = ProfileStore(self.path)
+        settings = store.settings()
+        self.assertEqual(settings["random_interval"], 60)
+        self.assertEqual(settings["science_hours"], 2.0)
+        self.assertEqual(settings["lock_timeout"], 20)
+        self.assertFalse(settings["auto_reconnect"])
+        self.assertEqual(settings["theme_mode"], "dark")
+        self.assertEqual(settings["science_batch"], 200)
+        self.assertEqual(settings["unknown"], {"keep": True})
+        self.assertEqual(store.data["schema_version"], SCHEMA_VERSION)
+
+    def test_merge_import_sanitizes_settings(self) -> None:
+        self.store.merge_import(
+            {
+                "settings": {
+                    "random_interval": "abc",
+                    "lock_timeout": -5,
+                    "auto_reconnect": "no",
+                    "science_delay": "fast",
+                    "lang": "de",
+                    "custom_key": "kept",
+                }
+            }
+        )
+        settings = self.store.settings()
+        self.assertEqual(settings["random_interval"], 60)
+        self.assertEqual(settings["lock_timeout"], 5)
+        self.assertFalse(settings["auto_reconnect"])
+        self.assertEqual(settings["science_delay"], 0.8)
+        self.assertEqual(settings["lang"], "tr")
+        self.assertEqual(settings["custom_key"], "kept")
+        reloaded = ProfileStore(self.path)
+        self.assertEqual(reloaded.settings()["random_interval"], 60)
+        self.assertEqual(reloaded.settings()["lock_timeout"], 5)
+        self.assertEqual(reloaded.data["schema_version"], SCHEMA_VERSION)
+
     def test_merge_import(self) -> None:
         self.store.merge_import(
             {
@@ -55,6 +110,14 @@ class ProfileStoreTests(unittest.TestCase):
         template = self.store.game_template("7")
         assert template is not None
         self.assertEqual(template.details, "tpl")
+
+    def test_malformed_profile_activity_is_ignored(self) -> None:
+        self.store.data["profiles"]["broken"] = {"game_id": "1", "activity": "not a dict"}
+        loaded = self.store.get("broken")
+        assert loaded is not None
+        game_id, config = loaded
+        self.assertEqual(game_id, "1")
+        self.assertIsNone(config.details)
 
     def test_game_templates_roundtrip(self) -> None:
         cfg = ActivityConfig(type=2, name="Track", details="Artist — Album")

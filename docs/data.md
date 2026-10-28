@@ -53,6 +53,7 @@ On Windows, bytes are `b"KY1\x00" + CryptProtectData(utf-8 json)` so another Win
 
 ```json
 {
+  "schema_version": 1,
   "last_game_id": "356875221078245376",
   "profiles": {
     "ranked": {
@@ -75,6 +76,8 @@ On Windows, bytes are `b"KY1\x00" + CryptProtectData(utf-8 json)` so another Win
 ```
 
 `ActivityConfig.to_json()` dumps every dataclass field. Unknown keys are ignored on load. Weights clamp to 1–20. Recents keep 20 ids. Played list trims to 50_000.
+
+`schema_version` tracks the `profiles.json` format (currently `1`). Settings are coerced and clamped on load and import; a malformed value falls back to its default and unknown keys are kept. This keeps a hand-edited or imported file from breaking startup.
 
 Export/import in the Games tab copies this object (not `science_state.json`).
 

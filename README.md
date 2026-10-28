@@ -386,7 +386,7 @@ python -m compileall -q ky_gameplayer run.py tests
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test), a Windows job and a Linux coverage job. The suite is 185 tests and covers activity JSON, catalog load/sync/search ranking, IPC framing, quest/science workers, credential helpers, HTTP retry, profiles and templates, detect matching, script hooks, rate-limit counters, themes, diagnostics, translations and keyring storage.
+GitHub Actions: unit tests on Python 3.11 / 3.12 / 3.13 / 3.14, `ruff`, an offscreen PySide6 job (TaskRunner + window smoke test), a Windows job and a Linux coverage job. The suite is 193 tests and covers activity JSON, catalog load/sync/search ranking, IPC framing, quest/science workers, credential helpers, HTTP retry, profiles and templates, detect matching, script hooks, rate-limit counters, themes, diagnostics, translations and keyring storage.
 
 Coverage uses a **60 %** line gate (currently 63 % on CI, 64 % locally) and uploads `coverage.xml`. HTTP tests use a local `ThreadingHTTPServer`; no test needs Discord, network access or a real token.
 
