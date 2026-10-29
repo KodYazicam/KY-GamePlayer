@@ -1,3 +1,55 @@
+## v1.3.2 — P0 reliability hotfix
+
+This is a focused hotfix for 1.3.1. No new features; detection, fingerprint
+capture and malformed settings are fixed.
+
+### Fixes
+
+- Process detection now delivers its result on the GUI thread through
+  `TaskRunner`. The 5 s scan no longer stays stuck after the first attempt, and
+  the detected list / auto-apply path works again
+  ([#34](https://github.com/KodYazicam/KY-GamePlayer/issues/34),
+  [#35](https://github.com/KodYazicam/KY-GamePlayer/pull/35)).
+- Fingerprint capture re-enables `btn_science_fp_capture` and reports success,
+  empty result or error instead of staying on “Fingerprint aranıyor...”.
+- `profiles.json` settings are coerced and clamped on load and import. A
+  malformed value falls back to its default instead of aborting startup;
+  unknown keys are preserved.
+- `schema_version` (currently `1`) is written to the profile store, and
+  `merge_import` sanitizes settings before saving.
+
+### Downloads
+
+| Platform | Artifact |
+| --- | --- |
+| Windows x64 | `KodYazar-Client-v1.3.2-windows-x64.zip` |
+| macOS Apple Silicon | `KodYazar-Client-v1.3.2-macos-arm64.zip` |
+| macOS Intel | `KodYazar-Client-v1.3.2-macos-x64.zip` |
+| Debian / Ubuntu x64 | `KodYazar-Client-v1.3.2-linux-x64.deb` |
+| Fedora / RHEL x64 | `KodYazar-Client-v1.3.2-linux-x64.rpm` |
+| Arch / Manjaro / EndeavourOS x64 | `KodYazar-Client-v1.3.2-arch-x64.pkg.tar.zst` |
+| Other Linux x64 | `KodYazar-Client-v1.3.2-linux-x64.tar.gz` |
+
+Every asset has a matching `.sha256` file and the release includes a combined
+`HASHES.txt`.
+
+### Upgrade notes
+
+- No manual migration. Existing `profiles.json` files are loaded and sanitized
+  in place.
+- Use this build instead of 1.3.1; the detection and fingerprint regressions
+  are fixed here.
+- macOS `.app` bundles are **unsigned and not notarized**. First launch:
+  right-click → Open, or remove the quarantine attribute after copying the app
+  out of the zip.
+
+### Tests
+
+- 193 tests, including event-loop regressions for `_scan_running` and
+  `_capture_fingerprint`, malformed settings/import tests and an offscreen
+  window-startup test.
+- `ruff` clean; coverage **64 %** (gate 60 %).
+
 ## v1.3.1 — native Linux and macOS packages
 
 This is a packaging release: the application code is unchanged from 1.3.0, but

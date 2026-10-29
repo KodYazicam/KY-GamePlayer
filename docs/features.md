@@ -1,6 +1,6 @@
 # Features (complete)
 
-Every control that exists in 1.3.1. UI copy is listed in Turkish first (default language), then English.
+Every control that exists in 1.3.2. UI copy is listed in Turkish first (default language), then English.
 
 Related: [`architecture.md`](architecture.md), [`discord.md`](discord.md), [`data.md`](data.md).
 

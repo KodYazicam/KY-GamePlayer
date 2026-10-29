@@ -96,7 +96,7 @@ Long form:
 
 ## Feature surface
 
-| Area | What ships in 1.3.1 |
+| Area | What ships in 1.3.2 |
 | --- | --- |
 | Shell | Dark / light / system appearance (design tokens + app-wide style sheet), tray, single instance, TR/EN, autostart (Linux/Windows/macOS) |
 | Lock | Harvest token from Discord/Vesktop Local Storage; optional paste; guild membership required |
@@ -371,7 +371,8 @@ Full checklist: [`docs/roadmap.md`](docs/roadmap.md). Short version:
 | **1.1.0** | Catalog sync CLI, Linux desktop install without rewriting git files, macOS `.app`, optional one-file EXE, settings block (log level / harvest / lock timeout), persisted window geometry, per-game templates, Listening helper, script hooks, science dry-run + 2000-game confirm cap, fingerprint capture button, rate-limit dashboard, social preview. |
 | **1.2.0** | `MainWindow` split into `ky_gameplayer/ui/`, blocking REST/harvest moved off the GUI thread, modern theme, keyring on Linux/macOS, per-game search cache, CI on 3.14 + lint + offscreen Qt + Windows. |
 | **1.3.0** | Non-blocking IPC connect and quest/science workers, ranked search + shortcuts, light/dark/system themes, opt-in catalog update, redacted rotating logs + diagnostics, HTTP retry hardening, 60 % coverage gate. |
-| **1.3.1 now** | Native Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch and generic Linux release packages; one release with SHA-256 checksums. |
+| **1.3.1** | Native Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch and generic Linux release packages; one release with SHA-256 checksums. |
+| **1.3.2 now** | 1.3.1 packaging plus the P0 reliability hotfix: reliable process detection, fingerprint capture and malformed-settings recovery. |
 | **1.4** | Asset browser UI (REST call landed), image upload helper, extra-slot UX when official Discord cannot stack, quest types beyond video/play/stream |
 | **2.0** | Multi-account identity files, signed binaries. **No** telemetry unless opt-in |
 

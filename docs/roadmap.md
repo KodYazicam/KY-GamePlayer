@@ -2,7 +2,15 @@
 
 Mirrored in the root README. Status is the contract for contributors.
 
-Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.3.1**.
+Version in `pyproject.toml` / `ky_gameplayer.__init__.__version__`: **1.3.2**.
+
+## Shipped — 1.3.2 (P0 reliability hotfix)
+
+- [x] Process scans and fingerprint capture deliver results through `TaskRunner` on the GUI thread
+- [x] Scan busy state resets on failure; the fingerprint button re-enables on success, empty result and error
+- [x] `profiles.json` settings are coerced and clamped on load and import; malformed values fall back to defaults
+- [x] `schema_version` added to the profile store and the import path is sanitized
+- [x] Event-loop regression tests for scan/fingerprint plus malformed settings/import and window startup
 
 ## Shipped — 1.3.1 (cross-platform packages)
 
