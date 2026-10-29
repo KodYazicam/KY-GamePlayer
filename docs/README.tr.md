@@ -30,7 +30,7 @@ PyPI’de yok. Repoyu klonla. Discord Stable / Canary / PTB / Vesktop / Vencord 
 
 Bu bir **yerel kullanıcı istemcisi**. Bu makinedeki açık Discord oturumunun token’ını okur; IPC ve API v9 ile Discord’a gider. KodYazicam sunucusuna kimlik göndermez. Resmi olmayan kullanıcı-token otomasyonu Discord kurallarını ihlal edebilir — risk sende. [`../SECURITY.md`](../SECURITY.md).
 
-Sürüm **1.3.1**: 1.3.0’ın tüm özellikleri + Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch ve genel Linux için ayrı yayın paketleri; her dosya için SHA-256 ve tek `HASHES.txt`.
+Sürüm **1.3.2**: 1.3.1’in tüm paketleri + süreç algılama ve fingerprint yakalama P0 düzeltmeleri, bozuk `profiles.json` ayarlarına karşı güvenli açılış; her dosya için SHA-256 ve tek `HASHES.txt`.
 
 İngilizce kök README ile aynı ürün. Ayrıntılı kontrol listesi: [`features.md`](features.md). Mimari: [`architecture.md`](architecture.md). Kurulum: [`install.md`](install.md). Yol haritası: [`roadmap.md`](roadmap.md).
 
@@ -51,7 +51,7 @@ Sürüm **1.3.1**: 1.3.0’ın tüm özellikleri + Windows, macOS arm64/Intel, D
 
 ---
 
-## Özellik yüzeyi (1.3.1)
+## Özellik yüzeyi (1.3.2)
 
 | Alan | Ne var |
 | --- | --- |
@@ -258,9 +258,10 @@ Tam liste: [`roadmap.md`](roadmap.md).
 | --- | --- |
 | **1.0.x** | Dokümantasyon, CI, GitHub, `icon.ico`, Windows release zip. Sosyal önizleme açık. |
 | **1.1** | Katalog senkron CLI, Linux desktop’u git kopyasını ezmeden kurmak, macOS `.app`, pencere geometrisi |
-| **1.3.1** | Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch ve genel Linux yayın paketleri; SHA-256 |
 | **1.2** | `ui/` modülleri, async görevler, keyring, modern tema |
-| **1.3 şimdi** | Async IPC/quest/science, sıralı arama, açık/koyu/sistem tema, isteğe bağlı katalog güncellemesi, HTTP retry, redakte günlük + tanılama, %60 kapsam |
+| **1.3** | Async IPC/quest/science, sıralı arama, açık/koyu/sistem tema, isteğe bağlı katalog güncellemesi, HTTP retry, redakte günlük + tanılama, %60 kapsam |
+| **1.3.1** | Windows, macOS arm64/Intel, Debian/Ubuntu, Fedora/RHEL, Arch ve genel Linux yayın paketleri; SHA-256 |
+| **1.3.2 şimdi** | P0 hotfix: süreç algılama ve fingerprint yakalama, bozuk `profiles.json` ayarlarına karşı güvenli açılış |
 | **1.4** | Asset tarayıcısı, görsel yükleme yardımcısı, resmi Discord’da ek slot uyarısı |
 | **2.0** | Çok hesaplı kimlik dosyası, imzalı ikili. Telemetri yok (isteğe bağlı olmadan) |
 

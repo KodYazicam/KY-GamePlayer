@@ -21,7 +21,7 @@ The release workflow is [`.github/workflows/release.yml`](../.github/workflows/r
 | `KodYazar-Client-vX-arch-x64.pkg.tar.zst` | Arch container | `sudo pacman -U …pkg.tar.zst` |
 | `KodYazar-Client-vX-linux-x64.tar.gz` | Ubuntu 22.04 | Unpack; run `KodYazar/KodYazar` |
 
-`vX` means the release tag, for example `v1.3.1`. Packaging scripts read the
+`vX` means the release tag, for example `v1.3.2`. Packaging scripts read the
 version from `pyproject.toml`. The `publish` job in the release workflow writes
 a `.sha256` file for every asset and one combined `HASHES.txt`.
 
